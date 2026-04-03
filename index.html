@@ -399,28 +399,79 @@ cursor: pointer;
 padding: 0 2px;
 }
 
-/* download toast */
-#dl-toast {
+/* save modal */
+#save-modal {
+display: none;
 position: fixed;
-bottom: 6rem;
-left: 50%;
-transform: translateX(-50%) translateY(10px);
+inset: 0;
+background: rgba(0,0,0,0.85);
+z-index: 100;
+align-items: center;
+justify-content: center;
+padding: 2rem;
+}
+#save-modal.show { display: flex; }
+
+.save-card {
+background: #161616;
+border: 1px solid var(–border);
+border-radius: 20px;
+padding: 2rem 1.5rem;
+width: 100%;
+max-width: 320px;
+display: flex;
+flex-direction: column;
+align-items: center;
+gap: 1.2rem;
+text-align: center;
+}
+
+.save-card h2 {
+font-family: ‘Space Mono’, monospace;
+font-size: 0.85rem;
+color: var(–accent);
+letter-spacing: 0.1em;
+}
+
+.save-card p {
+font-size: 0.82rem;
+color: var(–muted);
+line-height: 1.6;
+}
+
+#save-video-preview {
+width: 100%;
+border-radius: 10px;
+max-height: 180px;
+object-fit: cover;
+background: #000;
+}
+
+.save-btn {
+width: 100%;
+padding: 0.85rem;
+border: none;
+border-radius: 12px;
 background: var(–accent);
 color: #000;
 font-family: ‘Space Mono’, monospace;
-font-size: 0.72rem;
-padding: 0.6rem 1.2rem;
-border-radius: 10px;
-opacity: 0;
-transition: opacity 0.3s, transform 0.3s;
-pointer-events: none;
-white-space: nowrap;
-z-index: 50;
+font-size: 0.8rem;
+font-weight: 700;
+letter-spacing: 0.08em;
+cursor: pointer;
+text-decoration: none;
+display: block;
+text-align: center;
 }
 
-#dl-toast.show {
-opacity: 1;
-transform: translateX(-50%) translateY(0);
+.dismiss-btn {
+background: none;
+border: none;
+color: var(–muted);
+font-family: ‘Space Mono’, monospace;
+font-size: 0.7rem;
+cursor: pointer;
+padding: 0.3rem;
 }
 
 /* canvas overlay for recording (hidden) */
@@ -510,7 +561,17 @@ transform: translateX(-50%) translateY(0);
 
 </div>
 
-<div id="dl-toast">✓ Video saved</div>
+<!-- Save Modal -->
+
+<div id="save-modal">
+  <div class="save-card">
+    <h2>🎬 Recording Ready</h2>
+    <video id="save-video-preview" controls playsinline></video>
+    <p>Tap <strong>Save Video</strong> to download.<br>On iPhone, tap &amp; hold → <em>"Download Linked File"</em> if needed.</p>
+    <a id="save-link" class="save-btn" download="promptercam.webm">⬇ Save Video</a>
+    <button class="dismiss-btn" id="dismiss-modal">Discard &amp; continue</button>
+  </div>
+</div>
 
 <script>
 // ── State ──────────────────────────────────────────
