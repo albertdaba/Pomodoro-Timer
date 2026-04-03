@@ -3,7 +3,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>PrompterCam</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;600&display=swap');
@@ -28,6 +28,10 @@ color: var(–text);
 font-family: ‘DM Sans’, sans-serif;
 overflow: hidden;
 user-select: none;
+touch-action: none;
+overscroll-behavior: none;
+-webkit-user-select: none;
+-webkit-touch-callout: none;
 }
 
 /* ── SETUP SCREEN ── */
@@ -861,16 +865,24 @@ function saveVideo() {
   if (!recordedChunks.length) return;
   const blob = new Blob(recordedChunks, { type: recordedChunks[0].type || 'video/webm' });
   const url  = URL.createObjectURL(blob);
-  const a    = document.createElement('a');
-  a.href     = url;
-  a.download = `promptercam_${Date.now()}.webm`;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 5000);
 
-  const toast = document.getElementById('dl-toast');
-  toast.classList.add('show');
-  setTimeout(() => toast.classList.remove('show'), 2500);
+  // Show modal with preview + download link
+  const preview = document.getElementById('save-video-preview');
+  preview.src = url;
+
+  const link = document.getElementById('save-link');
+  link.href = url;
+  link.download = `promptercam_${Date.now()}.webm`;
+
+  document.getElementById('save-modal').classList.add('show');
 }
+
+document.getElementById('dismiss-modal').addEventListener('click', () => {
+  const preview = document.getElementById('save-video-preview');
+  URL.revokeObjectURL(preview.src);
+  preview.src = '';
+  document.getElementById('save-modal').classList.remove('show');
+});
 
 // ── Text wrap helper for canvas ──────────────────────
 function wrapText(ctx, text, maxWidth, size) {
