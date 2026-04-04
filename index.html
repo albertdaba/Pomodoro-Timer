@@ -4,506 +4,697 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <title>PrompterCam</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;600&display=swap');
+
 * { margin:0; padding:0; box-sizing:border-box; }
+
 :root {
-  --bg:#0a0a0a; --accent:#00ff88; --accent-dim:#00ff8844;
-  --text:#f0f0f0; --muted:#555; --border:#222; --danger:#ff3b5c;
+  --bg: #0c0c0c;
+  --surface: #141414;
+  --border: #1e1e1e;
+  --accent: #e8ff47;
+  --accent-dim: #e8ff4733;
+  --text: #efefef;
+  --muted: #444;
+  --danger: #ff4560;
 }
-html,body {
-  height:100%; width:100%; background:var(--bg); color:var(--text);
-  font-family:'DM Sans',sans-serif; overflow:hidden;
-  touch-action:none; overscroll-behavior:none;
+
+html, body {
+  height:100%; width:100%;
+  background:var(--bg); color:var(--text);
+  font-family:'Geist Mono', monospace;
+  overflow:hidden;
+  touch-action:none;
+  overscroll-behavior:none;
   -webkit-user-select:none; user-select:none;
 }
 
-/* ── SETUP ── */
+/* ── SETUP ───────────────────────────────────────── */
 #setup {
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  height:100vh; padding:2rem 1.5rem; gap:1.8rem;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  height:100vh; padding:2.5rem 1.8rem;
+  gap:2rem; position:relative;
 }
-.logo { font-family:'Space Mono',monospace; font-size:1.1rem; letter-spacing:.25em; color:var(--accent); }
-.logo span { color:var(--muted); }
+
+.wordmark {
+  font-family:'Instrument Serif', serif;
+  font-size:1.6rem;
+  color:var(--text);
+  letter-spacing:-.02em;
+  display:flex; align-items:baseline; gap:.3rem;
+}
+.wordmark em {
+  font-style:italic;
+  color:var(--accent);
+}
+
 .upload-zone {
-  width:100%; max-width:340px; border:1.5px dashed var(--border); border-radius:16px;
-  padding:2rem 1.5rem; display:flex; flex-direction:column; align-items:center; gap:.6rem;
-  cursor:pointer; position:relative; transition:border-color .2s,background .2s;
+  width:100%; max-width:360px;
+  border:1px solid var(--border);
+  border-radius:18px;
+  padding:2rem 1.5rem;
+  display:flex; flex-direction:column; align-items:center; gap:.7rem;
+  cursor:pointer; position:relative;
+  background:var(--surface);
+  transition:border-color .2s, background .2s;
 }
-.upload-zone:hover { border-color:var(--accent); background:#00ff8808; }
+.upload-zone.has-file { border-color:var(--accent); background:#e8ff4708; }
 .upload-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
-.upload-icon { font-size:2rem; }
-.upload-label { font-size:.85rem; color:var(--muted); text-align:center; }
-.upload-label strong { color:var(--text); display:block; }
-#file-name { font-family:'Space Mono',monospace; font-size:.7rem; color:var(--accent); background:#00ff8815; padding:.25rem .6rem; border-radius:6px; display:none; }
-.controls { display:flex; flex-direction:column; gap:.9rem; width:100%; max-width:340px; }
-.row { display:flex; align-items:center; gap:.75rem; }
-.lbl { font-family:'Space Mono',monospace; font-size:.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; width:55px; flex-shrink:0; }
-input[type=range] { -webkit-appearance:none; flex:1; height:3px; background:var(--border); border-radius:2px; outline:none; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--accent); cursor:pointer; }
-.val { font-family:'Space Mono',monospace; font-size:.7rem; color:var(--accent); width:26px; text-align:right; }
+.upload-icon { font-size:1.6rem; opacity:.6; }
+.upload-label { font-size:.72rem; color:var(--muted); text-align:center; line-height:1.6; letter-spacing:.05em; text-transform:uppercase; }
+.upload-label strong { color:var(--text); display:block; font-size:.82rem; text-transform:none; letter-spacing:0; }
+#file-name { font-size:.68rem; color:var(--accent); background:var(--accent-dim); padding:.25rem .65rem; border-radius:6px; display:none; letter-spacing:.04em; }
+
+.controls { display:flex; flex-direction:column; gap:.75rem; width:100%; max-width:360px; }
+.ctrl-row { display:flex; align-items:center; gap:.8rem; }
+.ctrl-lbl { font-size:.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; width:50px; flex-shrink:0; }
+input[type=range] { -webkit-appearance:none; flex:1; height:2px; background:var(--border); border-radius:2px; outline:none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 6px var(--accent-dim); }
+.ctrl-val { font-size:.68rem; color:var(--accent); width:28px; text-align:right; }
+
 #start-btn {
-  width:100%; max-width:340px; padding:1rem; border:none; border-radius:14px;
-  background:var(--accent); color:#000; font-family:'Space Mono',monospace;
-  font-size:.85rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
-  cursor:pointer; opacity:.3; pointer-events:none; transition:opacity .2s;
+  width:100%; max-width:360px;
+  padding:1.1rem; border:none; border-radius:14px;
+  background:var(--accent); color:#0c0c0c;
+  font-family:'Geist Mono',monospace; font-size:.82rem; font-weight:600;
+  letter-spacing:.1em; text-transform:uppercase;
+  cursor:pointer; opacity:.3; pointer-events:none;
+  transition:opacity .25s, transform .1s;
 }
 #start-btn.ready { opacity:1; pointer-events:all; }
+#start-btn:active { transform:scale(.97); }
 
-/* ── PROMPTER ── */
-#prompter { display:none; flex-direction:column; height:100vh; height:100dvh; overflow:hidden; position:relative; }
+/* settings gear */
+#settings-btn {
+  position:absolute; top:1.2rem; right:1.2rem;
+  width:38px; height:38px; border-radius:50%;
+  background:var(--surface); border:1px solid var(--border);
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; font-size:1rem;
+  transition:border-color .2s;
+}
+#settings-btn:hover { border-color:var(--accent); }
 
-/* TOP 25% — text band */
+/* ── SETTINGS PANEL ──────────────────────────────── */
+#settings-panel {
+  display:none;
+  position:fixed; inset:0; z-index:9000;
+  background:rgba(12,12,12,.95);
+  flex-direction:column; align-items:center; justify-content:center;
+  padding:2.5rem 1.8rem; gap:1.8rem;
+}
+#settings-panel.open { display:flex; }
+
+.settings-title {
+  font-size:.7rem; text-transform:uppercase; letter-spacing:.15em;
+  color:var(--muted);
+}
+
+.setting-row {
+  width:100%; max-width:360px;
+  display:flex; align-items:center; justify-content:space-between;
+  padding:.9rem 1rem;
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  gap:1rem;
+}
+.setting-row.sub { margin-left:.8rem; width:calc(100% - .8rem); max-width:calc(360px - .8rem); opacity:.7; }
+.setting-label { font-size:.72rem; color:var(--text); line-height:1.5; }
+.setting-desc { font-size:.6rem; color:var(--muted); margin-top:.15rem; }
+
+/* toggle switch */
+.toggle { position:relative; width:40px; height:22px; flex-shrink:0; }
+.toggle input { opacity:0; width:0; height:0; }
+.toggle-track {
+  position:absolute; inset:0; border-radius:11px;
+  background:var(--border); cursor:pointer;
+  transition:background .2s;
+}
+.toggle input:checked + .toggle-track { background:var(--accent); }
+.toggle-thumb {
+  position:absolute; top:3px; left:3px;
+  width:16px; height:16px; border-radius:50%;
+  background:#fff; transition:transform .2s;
+  pointer-events:none;
+}
+.toggle input:checked ~ .toggle-thumb { transform:translateX(18px); }
+
+select.setting-select {
+  background:var(--bg); color:var(--text);
+  border:1px solid var(--border); border-radius:7px;
+  padding:.35rem .5rem;
+  font-family:'Geist Mono',monospace; font-size:.68rem;
+  outline:none; cursor:pointer;
+}
+
+#close-settings {
+  width:100%; max-width:360px; padding:.85rem;
+  background:none; border:1px solid var(--border); color:var(--muted);
+  font-family:'Geist Mono',monospace; font-size:.72rem;
+  border-radius:12px; cursor:pointer;
+  transition:border-color .2s, color .2s;
+}
+#close-settings:hover { border-color:var(--accent); color:var(--accent); }
+
+/* ── TELEPROMPTER SCREEN (full-screen, default) ─── */
+#prompter {
+  display:none;
+  height:100vh; height:100dvh;
+  width:100%; position:relative;
+  overflow:hidden; background:var(--bg);
+}
+
+/* full-screen text band */
 #text-band {
-  height:25vh; overflow:hidden; position:relative;
-  background:rgba(0,0,0,.92); flex-shrink:0; z-index:10;
-}
-#text-band::before,#text-band::after {
-  content:''; position:absolute; left:0; right:0; height:28px; z-index:2; pointer-events:none;
-}
-#text-band::before { top:0; background:linear-gradient(to bottom,rgba(0,0,0,.92),transparent); }
-#text-band::after  { bottom:0; background:linear-gradient(to top,rgba(0,0,0,.92),transparent); }
-#cursor-line {
-  position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
-  height:2px; background:var(--accent); box-shadow:0 0 10px var(--accent); opacity:.6; z-index:3;
-}
-#scroll-inner { position:absolute; width:100%; padding:1.5rem 1.2rem; will-change:transform; }
-#scroll-text {
-  font-family:'DM Sans',sans-serif; font-weight:600; line-height:1.7;
-  color:#fff; text-align:center; text-shadow:0 0 18px rgba(0,255,136,.3);
+  position:absolute; inset:0;
+  overflow:hidden;
 }
 
-/* divider */
-#divider {
-  height:2px; flex-shrink:0; z-index:10;
-  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+/* soft fades top/bottom */
+#text-band::before,
+#text-band::after {
+  content:''; position:absolute; left:0; right:0; height:120px; z-index:2; pointer-events:none;
+}
+#text-band::before { top:0; background:linear-gradient(to bottom, var(--bg) 0%, transparent 100%); }
+#text-band::after  { bottom:0; background:linear-gradient(to top, var(--bg) 0%, transparent 100%); }
+
+#scroll-inner { position:absolute; width:100%; padding:50vh 2rem; will-change:transform; }
+#scroll-text {
+  font-family:'Instrument Serif', serif;
+  font-size:clamp(1.4rem, 6vw, 2rem);
+  font-weight:400;
+  line-height:1.65;
+  color:var(--text);
+  text-align:center;
+}
+
+/* reading line */
+#cursor-line {
+  position:absolute; left:8%; right:8%; top:50%; transform:translateY(-50%);
+  height:1.5px; background:var(--accent);
+  box-shadow:0 0 16px var(--accent-dim);
+  opacity:.55; z-index:3; pointer-events:none;
+}
+
+/* word highlight: the word nearest the cursor glows */
+#scroll-text .active-word { color:var(--accent); transition:color .1s; }
+
+/* HUD controls */
+#hud-bar {
+  position:absolute; bottom:0; left:0; right:0; z-index:10;
+  padding:1.2rem 1.5rem 2rem;
+  display:flex; align-items:center; justify-content:space-between;
+  background:linear-gradient(to top, rgba(12,12,12,.9) 0%, transparent 100%);
+}
+
+.hud-btn {
+  background:rgba(20,20,20,.7); border:1px solid var(--border);
+  color:var(--muted); border-radius:8px; padding:.45rem .7rem;
+  font-family:'Geist Mono',monospace; font-size:.62rem; cursor:pointer;
+  backdrop-filter:blur(4px);
+  transition:border-color .15s, color .15s;
+}
+.hud-btn:active { border-color:var(--accent); color:var(--accent); }
+
+.speed-box {
+  display:flex; align-items:center; gap:.5rem;
+  background:rgba(20,20,20,.7); border:1px solid var(--border);
+  border-radius:8px; padding:.4rem .7rem;
+  font-size:.62rem; color:var(--muted);
+  backdrop-filter:blur(4px);
+}
+.spd { background:none; border:none; color:var(--accent); font-family:'Geist Mono',monospace; font-size:.85rem; cursor:pointer; padding:0 3px; }
+#live-spd { color:var(--text); }
+
+#pause-btn { font-size:.85rem; }
+
+/* ── CAM STRIP (PrompterCam mode) ────────────────── */
+/* When promptercam is active, shrink text to top 25%
+   and show camera in bottom 75% */
+#prompter.cam-mode #text-band {
+  bottom:75%; /* occupies top 25% */
+}
+#prompter.cam-mode #scroll-inner {
+  padding:2rem 1.5rem; /* tighter padding in compact mode */
+}
+#prompter.cam-mode #scroll-text {
+  font-size:clamp(.9rem, 3.8vw, 1.2rem);
+  line-height:1.65;
+}
+#prompter.cam-mode #cursor-line {
+  top:50%; left:4%; right:4%;
+}
+#prompter.cam-mode #text-band::before,
+#prompter.cam-mode #text-band::after { height:28px; }
+
+#cam-section {
+  display:none;
+  position:absolute; bottom:0; left:0; right:0; height:75%;
+  overflow:hidden; background:#000;
+}
+#prompter.cam-mode #cam-section { display:block; }
+
+#divider-line {
+  display:none;
+  position:absolute; left:0; right:0; top:25%;
+  height:1.5px; z-index:5;
+  background:linear-gradient(90deg, transparent, var(--accent), transparent);
   box-shadow:0 0 8px var(--accent-dim);
 }
+#prompter.cam-mode #divider-line { display:block; }
 
-/* volume meter */
+#video-el { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; }
+
+/* vol meter */
 #vol-meter {
-  position:absolute; left:0; top:0; bottom:0;
-  width:4px; z-index:30;
-  background:rgba(255,255,255,0.07);
+  position:absolute; left:0; top:25%; bottom:0;
+  width:4px; z-index:10;
+  background:rgba(255,255,255,.05);
   display:flex; align-items:flex-end;
 }
 #vol-bar {
   width:100%; height:0%;
   background:var(--accent);
   border-radius:0 2px 2px 0;
-  transition:height 0.05s ease-out;
+  transition:height .05s ease-out;
   box-shadow:0 0 6px var(--accent-dim);
 }
-#cam-band { flex:1; position:relative; overflow:hidden; background:#000; }
-#video-el { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; }
 
-#back-btn {
-  position:absolute; top:.9rem; left:.9rem; z-index:20;
-  background:rgba(0,0,0,.55); border:1px solid var(--border);
-  color:var(--muted); border-radius:8px; padding:.4rem .7rem;
-  font-family:'Space Mono',monospace; font-size:.62rem; cursor:pointer;
-}
-#spd-box {
-  position:absolute; top:.9rem; right:.9rem; z-index:20;
-  background:rgba(0,0,0,.55); border:1px solid var(--border);
-  border-radius:8px; padding:.35rem .6rem;
-  font-family:'Space Mono',monospace; font-size:.62rem;
-  display:flex; align-items:center; gap:.4rem;
-}
-.spd { background:none; border:none; color:var(--accent); font-family:'Space Mono',monospace; font-size:.8rem; cursor:pointer; padding:0 2px; }
-
-#hud {
-  position:absolute; bottom:0; left:0; right:0; z-index:15;
-  padding:1rem 1.4rem; display:flex; align-items:flex-end; justify-content:space-between;
-  background:linear-gradient(to top,rgba(0,0,0,.65),transparent);
-}
-#rec-ind { display:flex; align-items:center; gap:.5rem; font-family:'Space Mono',monospace; font-size:.68rem; color:#fff; opacity:0; transition:opacity .3s; }
-#rec-ind.on { opacity:1; }
-.dot { width:8px; height:8px; border-radius:50%; background:var(--danger); animation:blink 1s infinite; }
-@keyframes blink { 0%,100%{opacity:1}50%{opacity:.15} }
-#timer { font-family:'Space Mono',monospace; font-size:.68rem; color:#fff; }
-
+/* rec button */
 #rec-btn {
-  position:absolute; bottom:1.3rem; left:50%; transform:translateX(-50%);
-  width:64px; height:64px; border-radius:50%; border:3px solid #fff;
+  position:absolute; bottom:1.4rem; left:50%; transform:translateX(-50%);
+  width:62px; height:62px; border-radius:50%; border:2.5px solid #fff;
   background:transparent; display:flex; align-items:center; justify-content:center;
   cursor:pointer; z-index:20;
 }
-#rec-inner { width:40px; height:40px; border-radius:50%; background:var(--danger); transition:border-radius .2s,width .2s,height .2s; }
-#rec-btn.rec #rec-inner { border-radius:6px; width:26px; height:26px; }
+#rec-inner { width:38px; height:38px; border-radius:50%; background:var(--danger); transition:border-radius .2s, width .2s, height .2s; }
+#rec-btn.rec #rec-inner { border-radius:6px; width:24px; height:24px; }
 
-/* ── SAVE SCREEN ── */
+#rec-ind {
+  position:absolute; top:25%; margin-top:.7rem; left:.9rem;
+  display:flex; align-items:center; gap:.4rem;
+  font-size:.62rem; color:#fff; opacity:0; z-index:15;
+  transition:opacity .3s;
+}
+#rec-ind.on { opacity:1; }
+.dot { width:7px; height:7px; border-radius:50%; background:var(--danger); animation:blink 1s infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.1} }
+#rec-timer { position:absolute; top:25%; margin-top:.7rem; right:.9rem; font-size:.62rem; color:#fff; z-index:15; }
+
+/* active mic label */
+#mic-active-lbl {
+  position:absolute; bottom:4rem; left:50%; transform:translateX(-50%);
+  font-size:.52rem; color:var(--accent); background:rgba(0,0,0,.55);
+  border:1px solid var(--border); border-radius:6px;
+  padding:.25rem .6rem; white-space:nowrap; z-index:20;
+  display:none;
+}
+#prompter.cam-mode #mic-active-lbl { display:block; }
+
+/* ── SAVE SCREEN ─────────────────────────────────── */
 #save-screen {
   display:none;
   position:fixed; inset:0; z-index:99999;
-  background:#0a0a0a;
+  background:var(--bg);
   flex-direction:column; align-items:center; justify-content:center;
-  padding:2rem 1.5rem; gap:1.2rem;
-  touch-action:pan-y;
+  padding:2.5rem 1.8rem; gap:1.4rem;
 }
 #save-screen.on { display:flex; }
-#save-title { font-family:'Space Mono',monospace; font-size:1rem; color:var(--accent); letter-spacing:.15em; text-align:center; }
-#save-status { font-family:'Space Mono',monospace; font-size:.78rem; color:var(--muted); text-align:center; }
-#preview {
-  width:100%; max-width:420px; border-radius:12px;
-  background:#111; max-height:34vh;
-  /* controls shown so user can use native share on iOS */
-}
-#save-instructions {
-  font-size:.8rem; color:var(--muted); text-align:center; line-height:1.6; max-width:320px;
-  display:none;
-}
-
-/* The download button — visible on Android/desktop */
-#dl-btn {
-  width:100%; max-width:420px; padding:1.2rem;
-  background:var(--accent); color:#000;
-  font-family:'Space Mono',monospace; font-size:1.05rem; font-weight:700;
-  letter-spacing:.1em; text-align:center; text-decoration:none;
+#save-title { font-family:'Instrument Serif',serif; font-size:1.4rem; color:var(--accent); text-align:center; }
+#save-status { font-size:.72rem; color:var(--muted); text-align:center; }
+#save-preview { width:100%; max-width:420px; border-radius:12px; background:#111; max-height:32vh; object-fit:cover; display:none; }
+#save-instructions { font-size:.72rem; color:var(--muted); text-align:center; line-height:1.6; max-width:320px; display:none; }
+#save-dl-btn {
+  display:none; width:100%; max-width:420px;
+  padding:1.1rem; background:var(--accent); color:#0c0c0c;
+  font-family:'Geist Mono',monospace; font-size:.9rem; font-weight:600;
+  letter-spacing:.08em; text-align:center; text-decoration:none;
   border-radius:14px; border:none; cursor:pointer;
-  display:none; /* shown by JS after blob ready */
 }
-
-/* iOS open button */
-#ios-hint {
-  width:100%; max-width:420px; padding:1.2rem;
-  background:var(--accent); color:#000;
-  font-family:'Space Mono',monospace; font-size:1.05rem; font-weight:700;
+#save-ios-btn {
+  display:none; width:100%; max-width:420px; padding:1rem;
+  background:var(--accent); color:#0c0c0c;
+  font-family:'Geist Mono',monospace; font-size:.9rem; font-weight:600;
   letter-spacing:.08em; text-align:center;
-  border-radius:14px; border:none;
-  cursor:pointer; display:none;
+  border-radius:14px; border:none; cursor:pointer;
+}
+#save-new-btn {
+  display:none; width:100%; max-width:420px; padding:.8rem;
+  background:none; border:1px solid var(--border); color:var(--muted);
+  font-family:'Geist Mono',monospace; font-size:.72rem; border-radius:12px; cursor:pointer;
 }
 
-#new-btn {
-  width:100%; max-width:420px; padding:.8rem;
-  background:none; border:1px solid var(--border); color:var(--muted);
-  font-family:'Space Mono',monospace; font-size:.72rem; border-radius:12px; cursor:pointer;
+/* ── MIC OVERLAY ─────────────────────────────────── */
+#mic-overlay {
   display:none;
+  position:fixed; inset:0; z-index:9998;
+  background:rgba(12,12,12,.95);
+  flex-direction:column; align-items:center; justify-content:flex-start;
+  padding:2.5rem 1.8rem 2rem; gap:1rem;
+  overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
+}
+#mic-overlay.open { display:flex; }
+.dev-ov-title {
+  font-size:.58rem; text-transform:uppercase; letter-spacing:.15em;
+  color:var(--muted); width:100%; max-width:360px;
+}
+.dev-ov-active {
+  width:100%; max-width:360px; padding:.6rem .9rem;
+  background:var(--surface); border:1px solid var(--accent);
+  border-radius:10px; font-size:.78rem; color:var(--text);
+}
+.dev-ov-select {
+  width:100%; max-width:360px;
+  background:var(--surface); color:var(--text);
+  border:1px solid var(--border); border-radius:10px;
+  padding:.7rem .9rem;
+  font-family:'Geist Mono',monospace; font-size:.78rem; outline:none;
+}
+.dev-ov-divider {
+  width:100%; max-width:360px; height:1px;
+  background:var(--border); margin:.3rem 0;
+}
+#mic-ov-restart {
+  width:100%; max-width:360px; padding:1rem;
+  background:var(--accent); color:#0c0c0c;
+  font-family:'Geist Mono',monospace; font-size:.82rem; font-weight:600;
+  letter-spacing:.08em; border:none; border-radius:12px; cursor:pointer;
+  margin-top:.4rem;
+}
+#mic-ov-ok {
+  width:100%; max-width:360px; padding:.8rem;
+  background:none; border:1px solid var(--border); color:var(--muted);
+  font-family:'Geist Mono',monospace; font-size:.72rem; border-radius:12px; cursor:pointer;
 }
 </style>
 </head>
 <body>
 
-<!-- SETUP -->
+<!-- ══ SETUP ══════════════════════════════════════════ -->
 <div id="setup">
-  <div class="logo">Prompter<span>Cam</span></div>
-  <div class="upload-zone">
+  <button id="settings-btn" title="Settings">⚙</button>
+
+  <div class="wordmark">Prompter<em>Cam</em></div>
+
+  <div class="upload-zone" id="drop-zone">
     <input type="file" id="file-input" accept=".txt,.md">
     <div class="upload-icon">📄</div>
-    <div class="upload-label"><strong>Upload Script</strong>Tap to choose a .txt file</div>
+    <div class="upload-label">
+      <strong>Upload your script</strong>
+      tap to choose a .txt file
+    </div>
     <div id="file-name"></div>
   </div>
+
   <div class="controls">
-    <div class="row">
-      <div class="lbl">Speed</div>
+    <div class="ctrl-row">
+      <div class="ctrl-lbl">Speed</div>
       <input type="range" id="speed-sl" min="0.5" max="10" value="0.5" step="0.5">
-      <div class="val" id="speed-v">0.5</div>
+      <div class="ctrl-val" id="speed-v">0.5</div>
     </div>
-    <div class="row">
-      <div class="lbl">Size</div>
-      <input type="range" id="size-sl" min="14" max="36" value="20" step="1">
-      <div class="val" id="size-v">20</div>
-    </div>
-    <div class="row">
-      <div class="lbl">Mic</div>
-      <select id="mic-sl" style="flex:1;background:#1a1a1a;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;font-family:'Space Mono',monospace;font-size:.7rem;outline:none;">
-        <option value="">Default Mic</option>
-      </select>
-    </div>
-    <div class="row">
-      <div class="lbl">FPS</div>
-      <select id="fps-sl" style="flex:1;background:#1a1a1a;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;font-family:'Space Mono',monospace;font-size:.7rem;outline:none;">
-        <option value="24" selected>24 fps</option>
-        <option value="30">30 fps</option>
-        <option value="60">60 fps</option>
-      </select>
+    <div class="ctrl-row">
+      <div class="ctrl-lbl">Size</div>
+      <input type="range" id="size-sl" min="14" max="40" value="22" step="1">
+      <div class="ctrl-val" id="size-v">22</div>
     </div>
   </div>
-  <button id="start-btn">Start Session</button>
+
+  <button id="start-btn">Start</button>
 </div>
 
-<!-- MIC CONFIRM OVERLAY — shown briefly after session starts -->
-<div id="mic-overlay" style="
-  display:none; position:fixed; inset:0; z-index:99998;
-  background:rgba(0,0,0,0.88);
-  flex-direction:column; align-items:center; justify-content:center;
-  padding:2rem 1.5rem; gap:1.2rem;
-">
-  <div style="font-family:'Space Mono',monospace;font-size:.9rem;color:var(--accent);letter-spacing:.12em;">ACTIVE MIC</div>
-  <div id="mic-overlay-active" style="font-family:'DM Sans',sans-serif;font-size:1rem;color:#fff;text-align:center;padding:.6rem 1rem;background:#1a1a1a;border-radius:10px;width:100%;max-width:360px;"></div>
-  <div style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);">Switch to a different mic:</div>
-  <select id="mic-overlay-sl" style="width:100%;max-width:360px;background:#1a1a1a;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.7rem .8rem;font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;">
-    <option value="">Auto (current)</option>
-  </select>
-  <button id="mic-overlay-restart" style="width:100%;max-width:360px;padding:1rem;background:var(--accent);color:#000;font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700;letter-spacing:.1em;border:none;border-radius:12px;cursor:pointer;">RESTART WITH SELECTED MIC</button>
-  <button id="mic-overlay-ok" style="width:100%;max-width:360px;padding:.8rem;background:none;border:1px solid var(--border);color:var(--muted);font-family:'Space Mono',monospace;font-size:.75rem;border-radius:12px;cursor:pointer;">Looks good — continue</button>
+<!-- ══ SETTINGS PANEL ═════════════════════════════════ -->
+<div id="settings-panel">
+  <div class="settings-title">Settings</div>
+
+  <div class="setting-row">
+    <div>
+      <div class="setting-label">PrompterCam Mode</div>
+      <div class="setting-desc">Show camera + record video while prompting</div>
+    </div>
+    <label class="toggle">
+      <input type="checkbox" id="cam-toggle">
+      <div class="toggle-track"></div>
+      <div class="toggle-thumb"></div>
+    </label>
+  </div>
+
+  <div class="setting-row sub" id="fps-row" style="display:none;">
+    <div class="setting-label">Frame rate</div>
+    <select id="fps-sl" class="setting-select">
+      <option value="24" selected>24 fps</option>
+      <option value="30">30 fps</option>
+      <option value="60">60 fps</option>
+    </select>
+  </div>
+
+  <button id="close-settings">Done</button>
 </div>
 
-<!-- PROMPTER -->
+<!-- ══ PROMPTER SCREEN ════════════════════════════════ -->
 <div id="prompter">
-  <div id="vol-meter"><div id="vol-bar"></div></div>
+  <div id="divider-line"></div>
+
+  <!-- text band (full screen in default, top 25% in cam mode) -->
   <div id="text-band">
     <div id="cursor-line"></div>
     <div id="scroll-inner"><div id="scroll-text"></div></div>
   </div>
-  <div id="divider"></div>
-  <div id="cam-band">
+
+  <!-- camera section (hidden unless cam-mode) -->
+  <div id="cam-section">
     <video id="video-el" autoplay playsinline muted></video>
-    <button id="back-btn">&#8592; Back</button>
-    <div id="active-mic-label" style="
-      position:absolute; top:2.8rem; left:.9rem; z-index:20;
-      background:rgba(0,0,0,.5); border:1px solid var(--border);
-      color:var(--accent); border-radius:8px; padding:.3rem .6rem;
-      font-family:'Space Mono',monospace; font-size:.55rem;
-      max-width:60%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-    ">&#127908; detecting...</div>
-    <div id="spd-box">
-      <button class="spd" id="sl-btn">&#8722;</button>
-      <span id="live-spd">3.0</span>&#215;
-      <button class="spd" id="fa-btn">&#43;</button>
-    </div>
-    <div id="hud">
-      <div id="rec-ind"><div class="dot"></div>REC</div>
-      <div id="timer">00:00</div>
-    </div>
+    <div id="vol-meter"><div id="vol-bar"></div></div>
+    <div id="rec-ind"><div class="dot"></div>REC</div>
+    <div id="rec-timer">00:00</div>
+    <div id="mic-active-lbl">🎙 detecting…</div>
     <button id="rec-btn"><div id="rec-inner"></div></button>
+  </div>
+
+  <!-- HUD at bottom (teleprompter controls) -->
+  <div id="hud-bar">
+    <button class="hud-btn" id="back-btn">← Back</button>
+    <div class="speed-box">
+      <button class="spd" id="sl-btn">−</button>
+      <span id="live-spd">0.5</span>×
+      <button class="spd" id="fa-btn">+</button>
+    </div>
+    <button class="hud-btn" id="pause-btn">⏸</button>
   </div>
 </div>
 
-<!-- SAVE SCREEN -->
+<!-- ══ DEVICE OVERLAY (camera + mic selection) ════════ -->
+<div id="mic-overlay">
+  <div style="font-family:'Instrument Serif',serif;font-size:1.2rem;color:var(--text);width:100%;max-width:360px;">Select Devices</div>
+
+  <div class="dev-ov-title">📷 Active Camera</div>
+  <div id="cam-ov-active" class="dev-ov-active">detecting…</div>
+  <div class="dev-ov-title">Switch camera:</div>
+  <select id="cam-ov-select" class="dev-ov-select">
+    <option value="">Auto (front camera)</option>
+  </select>
+
+  <div class="dev-ov-divider"></div>
+
+  <div class="dev-ov-title">🎙 Active Microphone</div>
+  <div id="mic-ov-active" class="dev-ov-active">detecting…</div>
+  <div class="dev-ov-title">Switch mic:</div>
+  <select id="mic-ov-select" class="dev-ov-select">
+    <option value="">Auto (default)</option>
+  </select>
+
+  <button id="mic-ov-restart">Restart with selected devices</button>
+  <button id="mic-ov-ok">Looks good — continue</button>
+</div>
+
+<!-- ══ SAVE SCREEN ════════════════════════════════════ -->
 <div id="save-screen">
-  <div id="save-title">&#127916; Recording Done</div>
-  <div id="save-status">Processing&hellip;</div>
-  <video id="preview" controls playsinline webkit-playsinline style="display:none"></video>
+  <div id="save-title">Recording done</div>
+  <div id="save-status">Processing…</div>
+  <video id="save-preview" controls playsinline webkit-playsinline style="display:none"></video>
   <div id="save-instructions"></div>
-  <a id="dl-btn" href="#">&#11015; Download Video</a>
-  <button id="ios-hint" onclick="if(window._blobUrl)window.open(window._blobUrl,'_blank');">&#9654; Open Video to Save</button>
-  <button id="new-btn">Discard &amp; record again</button>
+  <a id="save-dl-btn" href="#">⬇ Download Video</a>
+  <button id="save-ios-btn">▶ Open Video to Save</button>
+  <button id="save-new-btn">Discard &amp; record again</button>
 </div>
 
 <script>
-// Block zoom/scroll except inside save-screen
+// ── Prevent zoom/scroll ──────────────────────────────
 document.addEventListener('touchmove', function(e) {
-  if (!e.target.closest('#save-screen')) e.preventDefault();
-}, { passive: false });
-document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive: false });
+  if (!e.target.closest('#save-screen') && !e.target.closest('#mic-overlay'))
+    e.preventDefault();
+}, { passive:false });
+document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive:false });
 
-// Detect iOS
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-var scriptText = '', scrollSpeed = 0.5, fontSize = 20, fps = 24, selectedMicId = '';
-var isScrolling = false, scrollPos = 0, scrollRAF = null;
+// ── State ────────────────────────────────────────────
+var scriptText = '', scrollSpeed = 0.5, fontSize = 22;
+var camMode = false, fps = 24, selectedMicId = '', selectedCameraId = '';
+var isScrolling = false, isPaused = false, scrollPos = 0, scrollRAF = null;
 var camStream = null, mediaRecorder = null, recordedChunks = [];
 var isRecording = false, timerInterval = null, elapsed = 0;
 var textTotalH = 0, blobUrl = null;
+var volRAF = null, audioCtx = null;
 
-// Populate mic list (no labels until permission granted, that's OK)
-// Re-runs after session starts and on device plug/unplug
-function refreshMicList(keepSelection) {
-  navigator.mediaDevices.enumerateDevices().then(function(devices) {
-    var audioInputs = devices.filter(function(d) { return d.kind === 'audioinput'; });
-    var sel = document.getElementById('mic-sl');
-    var prev = keepSelection ? sel.value : '';
-    sel.innerHTML = '<option value="">Auto (use plugged-in mic)</option>';
-    audioInputs.forEach(function(d) {
-      var opt = document.createElement('option');
-      opt.value = d.deviceId;
-      opt.textContent = d.label || 'Microphone';
-      sel.appendChild(opt);
-    });
-    if (prev) sel.value = prev;
-    selectedMicId = sel.value;
-  }).catch(function() {});
-}
-refreshMicList(false);
-
-// Re-enumerate when a mic is plugged in/out
-navigator.mediaDevices.ondevicechange = function() { refreshMicList(true); };
-
-document.getElementById('mic-sl').addEventListener('change', function() {
-  selectedMicId = this.value;
+// ── Settings ─────────────────────────────────────────
+document.getElementById('settings-btn').addEventListener('click', function() {
+  document.getElementById('settings-panel').classList.add('open');
+});
+document.getElementById('close-settings').addEventListener('click', function() {
+  document.getElementById('settings-panel').classList.remove('open');
+});
+document.getElementById('cam-toggle').addEventListener('change', function() {
+  camMode = this.checked;
+  document.getElementById('fps-row').style.display = camMode ? 'flex' : 'none';
+});
+document.getElementById('fps-sl').addEventListener('change', function() {
+  fps = parseInt(this.value);
 });
 
-document.getElementById('mic-overlay-ok').addEventListener('click', function() {
-  document.getElementById('mic-overlay').style.display = 'none';
-});
-
-document.getElementById('mic-overlay-restart').addEventListener('click', function() {
-  var chosen = document.getElementById('mic-overlay-sl').value;
-  // Stop existing session
-  if (camStream) camStream.getTracks().forEach(function(t) { t.stop(); });
-  stopVolumeMeter();
-  isScrolling = false;
-  if (scrollRAF) cancelAnimationFrame(scrollRAF);
-  document.getElementById('mic-overlay').style.display = 'none';
-  document.getElementById('prompter').style.display = 'none';
-  // Pre-select in setup dropdown and restart
-  selectedMicId = chosen;
-  document.getElementById('mic-sl').value = chosen;
-  launchSession();
-});
-
-
+// ── File upload ───────────────────────────────────────
 document.getElementById('file-input').addEventListener('change', function(e) {
-  var f = e.target.files[0];
+  loadFile(e.target.files[0]);
+});
+var dz = document.getElementById('drop-zone');
+dz.addEventListener('dragover', function(e) { e.preventDefault(); });
+dz.addEventListener('drop', function(e) { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
+
+function loadFile(f) {
   if (!f) return;
   var r = new FileReader();
   r.onload = function(ev) {
     scriptText = ev.target.result.trim();
     document.getElementById('file-name').textContent = f.name;
     document.getElementById('file-name').style.display = 'block';
+    document.getElementById('drop-zone').classList.add('has-file');
     document.getElementById('start-btn').classList.add('ready');
   };
   r.readAsText(f);
-});
+}
 
-// ── SLIDERS ─────────────────────────────────────────
+// ── Sliders ───────────────────────────────────────────
 document.getElementById('speed-sl').addEventListener('input', function() {
   scrollSpeed = parseFloat(this.value);
   document.getElementById('speed-v').textContent = scrollSpeed;
+  document.getElementById('live-spd').textContent = scrollSpeed;
 });
 document.getElementById('size-sl').addEventListener('input', function() {
   fontSize = parseInt(this.value);
   document.getElementById('size-v').textContent = fontSize;
 });
 
-document.getElementById('fps-sl').addEventListener('change', function() {
-  fps = parseInt(this.value);
-});
-
-
+// ── Start ─────────────────────────────────────────────
 document.getElementById('start-btn').addEventListener('click', function() {
   if (scriptText) launchSession();
 });
 
 function launchSession() {
-  // Build audio constraint:
-  // - No deviceId selected → bare `true` so iOS naturally routes to
-  //   whatever is plugged in (Lark A1 if connected via Lightning)
-  // - Specific deviceId selected → pass it explicitly
-  var audioConstraint = selectedMicId
-    ? { deviceId: { exact: selectedMicId } }
-    : true;
+  if (camMode) {
+    var videoConstraint = selectedCameraId
+      ? { deviceId:{exact:selectedCameraId}, width:{ideal:1920}, height:{ideal:1080}, frameRate:{min:fps,ideal:fps} }
+      : { facingMode:{ideal:'user'}, width:{ideal:1920}, height:{ideal:1080}, frameRate:{min:fps,ideal:fps} };
 
-  navigator.mediaDevices.getUserMedia({
-    video: {
-      facingMode: { ideal: 'user' },
-      width:  { ideal: 1920 },
-      height: { ideal: 1080 },
-      frameRate: { min: fps, ideal: fps }
-    },
-    audio: audioConstraint
-  }).then(function(s) {
-    camStream = s;
-    // Enumerate with real labels now that permission is granted
-    navigator.mediaDevices.enumerateDevices().then(function(devices) {
-      var audioInputs = devices.filter(function(d) { return d.kind === 'audioinput'; });
+    navigator.mediaDevices.getUserMedia({
+      video: videoConstraint,
+      audio: selectedMicId ? { deviceId:{exact:selectedMicId} } : true
+    }).then(function(s) {
+      camStream = s;
+      // Enumerate with real labels now permission granted
+      navigator.mediaDevices.enumerateDevices().then(function(devices) {
+        // — Camera dropdown
+        var camSel = document.getElementById('cam-ov-select');
+        camSel.innerHTML = '<option value="">Auto (front camera)</option>';
+        devices.filter(function(d){ return d.kind==='videoinput'; }).forEach(function(d) {
+          var o = document.createElement('option');
+          o.value = d.deviceId;
+          o.textContent = d.label || 'Camera';
+          if (d.deviceId === selectedCameraId) o.selected = true;
+          camSel.appendChild(o);
+        });
+        var vTracks = s.getVideoTracks();
+        document.getElementById('cam-ov-active').textContent =
+          '📷 ' + (vTracks.length ? (vTracks[0].label || 'Camera') : 'Unknown');
 
-      // Update setup dropdown for next time
-      var setupSel = document.getElementById('mic-sl');
-      setupSel.innerHTML = '<option value="">Auto (use plugged-in mic)</option>';
-      audioInputs.forEach(function(d) {
-        var opt = document.createElement('option');
-        opt.value = d.deviceId;
-        opt.textContent = d.label || 'Microphone';
-        setupSel.appendChild(opt);
-      });
+        // — Mic dropdown
+        var micSel = document.getElementById('mic-ov-select');
+        micSel.innerHTML = '<option value="">Auto (default)</option>';
+        devices.filter(function(d){ return d.kind==='audioinput'; }).forEach(function(d) {
+          var o = document.createElement('option');
+          o.value = d.deviceId;
+          o.textContent = d.label || 'Microphone';
+          if (d.deviceId === selectedMicId) o.selected = true;
+          micSel.appendChild(o);
+        });
+        var aTracks = s.getAudioTracks();
+        var micName = aTracks.length ? (aTracks[0].label || 'Microphone') : 'Unknown';
+        document.getElementById('mic-ov-active').textContent = '🎙 ' + micName;
+        document.getElementById('mic-active-lbl').textContent = '🎙 ' + micName;
 
-      // Populate overlay dropdown
-      var overlaySel = document.getElementById('mic-overlay-sl');
-      overlaySel.innerHTML = '<option value="">Auto (current)</option>';
-      audioInputs.forEach(function(d) {
-        var opt = document.createElement('option');
-        opt.value = d.deviceId;
-        opt.textContent = d.label || 'Microphone';
-        overlaySel.appendChild(opt);
-      });
+        document.getElementById('mic-overlay').classList.add('open');
+      }).catch(function(){});
 
-      // Show active mic name
-      var audioTracks = s.getAudioTracks();
-      var activeName = audioTracks.length > 0
-        ? (audioTracks[0].label || 'Microphone')
-        : 'Unknown';
-      document.getElementById('mic-overlay-active').textContent = '🎙 ' + activeName;
-      document.getElementById('active-mic-label').textContent = '🎙 ' + activeName;
-
-      // Show the overlay
-      document.getElementById('mic-overlay').style.display = 'flex';
-    }).catch(function() {});
-
-    document.getElementById('setup').style.display = 'none';
-    document.getElementById('prompter').style.display = 'flex';
-    document.getElementById('video-el').srcObject = camStream;
-    startVolumeMeter(camStream);
-
-    var st = document.getElementById('scroll-text');
-    st.style.fontSize = fontSize + 'px';
-    st.textContent = scriptText;
-
-    scrollPos = 0;
-    var band = document.getElementById('text-band');
-    var inner = document.getElementById('scroll-inner');
-    inner.style.transform = 'translateY(' + band.clientHeight + 'px)';
-    setTimeout(function() {
-      textTotalH = inner.offsetHeight;
-      startScrolling();
-    }, 150);
-  }).catch(function(err) {
-    alert('Camera & mic access required. Error: ' + err.message);
-  });
+      document.getElementById('video-el').srcObject = camStream;
+      startVolumeMeter(camStream);
+      showPrompter(true);
+    }).catch(function(err) {
+      alert('Camera & mic required: ' + err.message);
+    });
+  } else {
+    showPrompter(false);
+  }
 }
 
-// ── VOLUME METER ─────────────────────────────────────
-var volRAF = null, audioCtx = null;
-function startVolumeMeter(stream) {
-  try {
-    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    var src = audioCtx.createMediaStreamSource(stream);
-    var analyser = audioCtx.createAnalyser();
-    analyser.fftSize = 512;
-    analyser.smoothingTimeConstant = 0.6;
-    src.connect(analyser);
-    var data = new Uint8Array(analyser.frequencyBinCount);
-    var bar = document.getElementById('vol-bar');
-    function tick() {
-      volRAF = requestAnimationFrame(tick);
-      analyser.getByteFrequencyData(data);
-      var sum = 0;
-      for (var i = 0; i < data.length; i++) sum += data[i];
-      var avg = sum / data.length;           // 0–255
-      var pct = Math.min(100, (avg / 80) * 100); // scale so normal speech hits ~60–80%
-      bar.style.height = pct + '%';
-    }
-    tick();
-  } catch(e) {}
-}
-function stopVolumeMeter() {
-  if (volRAF) { cancelAnimationFrame(volRAF); volRAF = null; }
-  if (audioCtx) { audioCtx.close(); audioCtx = null; }
-  var bar = document.getElementById('vol-bar');
-  if (bar) bar.style.height = '0%';
+function showPrompter(withCam) {
+  document.getElementById('setup').style.display = 'none';
+  var p = document.getElementById('prompter');
+  p.style.display = 'block';
+  if (withCam) p.classList.add('cam-mode');
+  else p.classList.remove('cam-mode');
+
+  var st = document.getElementById('scroll-text');
+  st.style.fontSize = fontSize + 'px';
+  st.textContent = scriptText;
+
+  scrollPos = 0; isPaused = false;
+  var inner = document.getElementById('scroll-inner');
+  // Start text below viewport center so it scrolls UP through the reading line
+  inner.style.transform = 'translateY(0px)';
+  setTimeout(function() {
+    textTotalH = inner.offsetHeight;
+    startScrolling();
+  }, 150);
+  document.getElementById('pause-btn').textContent = '⏸';
 }
 
-// ── SCROLL ───────────────────────────────────────────
+// ── Scroll ────────────────────────────────────────────
 function startScrolling() {
   if (scrollRAF) cancelAnimationFrame(scrollRAF);
-  isScrolling = true;
-  var band = document.getElementById('text-band');
+  isScrolling = true; isPaused = false;
   var inner = document.getElementById('scroll-inner');
-  var bandH = band.clientHeight;
+  var vh = window.innerHeight;
+  // In cam mode, text fits in top 25%
+  var visibleH = camMode ? vh * 0.25 : vh;
   var last = null;
+
   function loop(ts) {
     if (!isScrolling) return;
+    if (isPaused) { scrollRAF = requestAnimationFrame(loop); return; }
     if (!last) last = ts;
     var dt = ts - last; last = ts;
     scrollPos += (scrollSpeed * 30 / 1000) * dt;
-    inner.style.transform = 'translateY(' + (bandH - scrollPos) + 'px)';
-    if (scrollPos < textTotalH + bandH) scrollRAF = requestAnimationFrame(loop);
-    else isScrolling = false;
+    inner.style.transform = 'translateY(-' + scrollPos + 'px)';
+    if (scrollPos < textTotalH + visibleH) {
+      scrollRAF = requestAnimationFrame(loop);
+    } else {
+      isScrolling = false;
+    }
   }
   scrollRAF = requestAnimationFrame(loop);
 }
 
+// ── HUD controls ──────────────────────────────────────
 document.getElementById('sl-btn').addEventListener('click', function() { adjSpeed(-0.5); });
 document.getElementById('fa-btn').addEventListener('click', function() { adjSpeed(0.5); });
 function adjSpeed(d) {
@@ -511,169 +702,175 @@ function adjSpeed(d) {
   document.getElementById('live-spd').textContent = scrollSpeed.toFixed(1);
 }
 
-// ── BACK ─────────────────────────────────────────────
+document.getElementById('pause-btn').addEventListener('click', function() {
+  isPaused = !isPaused;
+  this.textContent = isPaused ? '▶' : '⏸';
+  if (!isPaused && !isScrolling) startScrolling();
+});
+
 document.getElementById('back-btn').addEventListener('click', function() {
-  if (isRecording) stopRec(false);
-  stopVolumeMeter();
-  isScrolling = false;
-  if (scrollRAF) cancelAnimationFrame(scrollRAF);
-  if (camStream) camStream.getTracks().forEach(function(t) { t.stop(); });
-  // Reset save screen state for next session
-  recordedChunks = [];
-  if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
-  document.getElementById('save-screen').classList.remove('on');
+  stopSession();
   document.getElementById('prompter').style.display = 'none';
   document.getElementById('setup').style.display = 'flex';
 });
 
-// ── RECORD ───────────────────────────────────────────
+function stopSession() {
+  if (isRecording) stopRec(false);
+  isScrolling = false; isPaused = false;
+  if (scrollRAF) cancelAnimationFrame(scrollRAF);
+  stopVolumeMeter();
+  if (camStream) { camStream.getTracks().forEach(function(t){t.stop();}); camStream = null; }
+  recordedChunks = [];
+  if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
+}
+
+// ── Mic overlay ───────────────────────────────────────
+document.getElementById('mic-ov-ok').addEventListener('click', function() {
+  document.getElementById('mic-overlay').classList.remove('open');
+});
+document.getElementById('mic-ov-restart').addEventListener('click', function() {
+  selectedMicId    = document.getElementById('mic-ov-select').value;
+  selectedCameraId = document.getElementById('cam-ov-select').value;
+  document.getElementById('mic-overlay').classList.remove('open');
+  stopSession();
+  document.getElementById('prompter').classList.remove('cam-mode');
+  document.getElementById('prompter').style.display = 'none';
+  launchSession();
+});
+
+// ── Recording ─────────────────────────────────────────
 document.getElementById('rec-btn').addEventListener('click', function() {
-  if (isRecording) stopRec(true);
-  else startRec();
+  if (isRecording) stopRec(true); else startRec();
 });
 
 function startRec() {
   recordedChunks = [];
-
-  // Record the RAW camera stream directly — works on ALL browsers including iOS Safari
-  // This avoids canvas.captureStream() which iOS Safari does NOT support
-  var mimes = [
-    'video/mp4;codecs=h264,aac',
-    'video/mp4',
-    'video/webm;codecs=vp9,opus',
-    'video/webm;codecs=vp8,opus',
-    'video/webm'
-  ];
+  var mimes = ['video/mp4;codecs=h264,aac','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
   var mime = '';
-  for (var i = 0; i < mimes.length; i++) {
-    try {
-      if (MediaRecorder.isTypeSupported(mimes[i])) { mime = mimes[i]; break; }
-    } catch(e) {}
-  }
-
+  for (var i=0;i<mimes.length;i++) { try{ if(MediaRecorder.isTypeSupported(mimes[i])){mime=mimes[i];break;} }catch(e){} }
   try {
     mediaRecorder = mime
-      ? new MediaRecorder(camStream, { mimeType: mime, videoBitsPerSecond: 8000000 })
-      : new MediaRecorder(camStream, { videoBitsPerSecond: 8000000 });
-  } catch(e) {
-    try { mediaRecorder = new MediaRecorder(camStream); }
-    catch(e2) { alert('Recording not supported on this browser.'); return; }
-  }
+      ? new MediaRecorder(camStream,{mimeType:mime,videoBitsPerSecond:8000000})
+      : new MediaRecorder(camStream,{videoBitsPerSecond:8000000});
+  } catch(e) { try{mediaRecorder=new MediaRecorder(camStream);}catch(e2){alert('Recording not supported.');return;} }
 
-  mediaRecorder.ondataavailable = function(e) {
-    if (e.data && e.data.size > 0) recordedChunks.push(e.data);
-  };
-
-  mediaRecorder.onstop = function() {
-    // Wait to ensure all ondataavailable chunks have arrived
-    setTimeout(buildAndShowSave, 1200);
-  };
-
+  mediaRecorder.ondataavailable = function(e){ if(e.data&&e.data.size>0) recordedChunks.push(e.data); };
+  mediaRecorder.onstop = function(){ setTimeout(buildAndShowSave, 1200); };
   mediaRecorder.start(1000);
 
-  isRecording = true;
-  elapsed = 0;
+  isRecording=true; elapsed=0;
   document.getElementById('rec-ind').classList.add('on');
   document.getElementById('rec-btn').classList.add('rec');
-  timerInterval = setInterval(function() {
+  timerInterval = setInterval(function(){
     elapsed++;
-    var m = String(Math.floor(elapsed / 60)).padStart(2, '0');
-    var s = String(elapsed % 60).padStart(2, '0');
-    document.getElementById('timer').textContent = m + ':' + s;
-  }, 1000);
+    var m=String(Math.floor(elapsed/60)).padStart(2,'0');
+    var s=String(elapsed%60).padStart(2,'0');
+    document.getElementById('rec-timer').textContent=m+':'+s;
+  },1000);
 }
 
-function stopRec(showSave) {
+function stopRec(save) {
   if (!isRecording) return;
-  isRecording = false;
+  isRecording=false;
   clearInterval(timerInterval);
   document.getElementById('rec-ind').classList.remove('on');
   document.getElementById('rec-btn').classList.remove('rec');
-  document.getElementById('timer').textContent = '00:00';
-
-  if (!showSave) {
-    mediaRecorder.onstop = function() {}; // suppress save
-  }
-
-  if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-    try { mediaRecorder.requestData(); } catch(e) {}
+  document.getElementById('rec-timer').textContent='00:00';
+  if (!save) { mediaRecorder.onstop=function(){}; }
+  if (mediaRecorder&&mediaRecorder.state!=='inactive') {
+    try{mediaRecorder.requestData();}catch(e){}
     mediaRecorder.stop();
   }
-
-  if (showSave) {
-    // Show save screen immediately with "Processing…"
-    document.getElementById('save-status').textContent = 'Processing\u2026';
-    document.getElementById('save-status').style.display = 'block';
-    document.getElementById('preview').style.display = 'none';
-    document.getElementById('dl-btn').style.display = 'none';
-    document.getElementById('ios-hint').style.display = 'none';
-    document.getElementById('new-btn').style.display = 'none';
-    document.getElementById('save-instructions').style.display = 'none';
+  if (save) {
+    document.getElementById('save-status').textContent='Processing…';
+    document.getElementById('save-status').style.display='block';
+    document.getElementById('save-preview').style.display='none';
+    document.getElementById('save-dl-btn').style.display='none';
+    document.getElementById('save-ios-btn').style.display='none';
+    document.getElementById('save-new-btn').style.display='none';
+    document.getElementById('save-instructions').style.display='none';
     document.getElementById('save-screen').classList.add('on');
   }
 }
 
 function buildAndShowSave() {
+  document.getElementById('save-status').style.display='none';
   if (!recordedChunks.length) {
-    document.getElementById('save-status').textContent = 'Error: nothing was recorded. Try again.';
-    document.getElementById('new-btn').style.display = 'block';
+    document.getElementById('save-status').textContent='Error: nothing recorded.';
+    document.getElementById('save-status').style.display='block';
+    document.getElementById('save-new-btn').style.display='block';
     return;
   }
-
   if (blobUrl) URL.revokeObjectURL(blobUrl);
-
-  var mimeType = (recordedChunks[0] && recordedChunks[0].type) ? recordedChunks[0].type : 'video/mp4';
-  var blob = new Blob(recordedChunks, { type: mimeType });
+  var mimeType = (recordedChunks[0]&&recordedChunks[0].type) ? recordedChunks[0].type : 'video/mp4';
+  var blob = new Blob(recordedChunks,{type:mimeType});
   blobUrl = URL.createObjectURL(blob);
   window._blobUrl = blobUrl;
 
-  // Show video preview
-  var preview = document.getElementById('preview');
-  preview.src = blobUrl;
-  preview.style.display = 'block';
-
-  document.getElementById('save-status').style.display = 'none';
-
-  var ext = mimeType.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
-  var dlBtn = document.getElementById('dl-btn');
-  dlBtn.setAttribute('href', blobUrl);
-  dlBtn.setAttribute('download', 'promptercam_' + Date.now() + '.' + ext);
-  dlBtn.style.display = 'block';
+  var prev = document.getElementById('save-preview');
+  prev.src=blobUrl; prev.style.display='block';
 
   if (isIOS) {
     document.getElementById('save-instructions').innerHTML =
-      'Tap <strong style="color:#00ff88">Open Video</strong> below. ' +
-      'Safari will open it in a new tab. Then tap the <strong style="color:#00ff88">Share &#8679;</strong> button at the bottom of Safari and choose <strong style="color:#00ff88">Save to Photos</strong>.';
-    document.getElementById('save-instructions').style.display = 'block';
-    document.getElementById('ios-hint').style.display = 'block';
+      'Tap <strong style="color:var(--accent)">Open Video</strong> below. In Safari, tap the share ↑ icon → <strong style="color:var(--accent)">Save to Photos</strong>.';
+    document.getElementById('save-instructions').style.display='block';
+    document.getElementById('save-ios-btn').style.display='block';
+  } else {
+    var ext = mimeType.indexOf('mp4')!==-1?'mp4':'webm';
+    var dl = document.getElementById('save-dl-btn');
+    dl.setAttribute('href',blobUrl);
+    dl.setAttribute('download','promptercam_'+Date.now()+'.'+ext);
+    dl.style.display='block';
   }
-
-  document.getElementById('new-btn').style.display = 'block';
-  // Ensure save screen is visible
+  document.getElementById('save-new-btn').style.display='block';
   document.getElementById('save-screen').classList.add('on');
 }
 
-// ── DISCARD / NEW ────────────────────────────────────
-document.getElementById('new-btn').addEventListener('click', function() {
+document.getElementById('save-ios-btn').addEventListener('click', function() {
+  if (window._blobUrl) window.open(window._blobUrl,'_blank');
+});
+
+document.getElementById('save-new-btn').addEventListener('click', function() {
   document.getElementById('save-screen').classList.remove('on');
-  var preview = document.getElementById('preview');
-  preview.pause();
-  preview.src = '';
-  preview.style.display = 'none';
-  document.getElementById('dl-btn').style.display = 'none';
-  document.getElementById('ios-hint').style.display = 'none';
-  document.getElementById('save-instructions').style.display = 'none';
-  document.getElementById('new-btn').style.display = 'none';
-  document.getElementById('save-status').style.display = 'none';
-  if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
-  recordedChunks = [];
-  // Reset scroll
-  scrollPos = 0;
-  var band = document.getElementById('text-band');
-  var inner = document.getElementById('scroll-inner');
-  inner.style.transform = 'translateY(' + band.clientHeight + 'px)';
+  var prev=document.getElementById('save-preview');
+  prev.pause(); prev.src=''; prev.style.display='none';
+  document.getElementById('save-dl-btn').style.display='none';
+  document.getElementById('save-ios-btn').style.display='none';
+  document.getElementById('save-instructions').style.display='none';
+  document.getElementById('save-new-btn').style.display='none';
+  if (blobUrl){URL.revokeObjectURL(blobUrl);blobUrl=null;}
+  recordedChunks=[];
+  scrollPos=0;
+  var inner=document.getElementById('scroll-inner');
+  inner.style.transform='translateY(0px)';
   startScrolling();
 });
+
+// ── Volume meter ──────────────────────────────────────
+function startVolumeMeter(stream) {
+  try {
+    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+    var src = audioCtx.createMediaStreamSource(stream);
+    var analyser = audioCtx.createAnalyser();
+    analyser.fftSize=512; analyser.smoothingTimeConstant=0.6;
+    src.connect(analyser);
+    var data = new Uint8Array(analyser.frequencyBinCount);
+    var bar = document.getElementById('vol-bar');
+    function tick(){
+      volRAF=requestAnimationFrame(tick);
+      analyser.getByteFrequencyData(data);
+      var sum=0; for(var i=0;i<data.length;i++) sum+=data[i];
+      bar.style.height=Math.min(100,(sum/data.length/80)*100)+'%';
+    }
+    tick();
+  } catch(e){}
+}
+function stopVolumeMeter(){
+  if(volRAF){cancelAnimationFrame(volRAF);volRAF=null;}
+  if(audioCtx){audioCtx.close();audioCtx=null;}
+  var b=document.getElementById('vol-bar');
+  if(b) b.style.height='0%';
+}
 </script>
 </body>
 </html>
