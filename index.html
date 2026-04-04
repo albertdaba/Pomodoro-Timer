@@ -222,6 +222,23 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
   <button id="start-btn">Start Session</button>
 </div>
 
+<!-- MIC CONFIRM OVERLAY — shown briefly after session starts -->
+<div id="mic-overlay" style="
+  display:none; position:fixed; inset:0; z-index:99998;
+  background:rgba(0,0,0,0.88);
+  flex-direction:column; align-items:center; justify-content:center;
+  padding:2rem 1.5rem; gap:1.2rem;
+">
+  <div style="font-family:'Space Mono',monospace;font-size:.9rem;color:var(--accent);letter-spacing:.12em;">ACTIVE MIC</div>
+  <div id="mic-overlay-active" style="font-family:'DM Sans',sans-serif;font-size:1rem;color:#fff;text-align:center;padding:.6rem 1rem;background:#1a1a1a;border-radius:10px;width:100%;max-width:360px;"></div>
+  <div style="font-family:'Space Mono',monospace;font-size:.7rem;color:var(--muted);">Switch to a different mic:</div>
+  <select id="mic-overlay-sl" style="width:100%;max-width:360px;background:#1a1a1a;color:var(--text);border:1px solid var(--border);border-radius:8px;padding:.7rem .8rem;font-family:'DM Sans',sans-serif;font-size:.9rem;outline:none;">
+    <option value="">Auto (current)</option>
+  </select>
+  <button id="mic-overlay-restart" style="width:100%;max-width:360px;padding:1rem;background:var(--accent);color:#000;font-family:'Space Mono',monospace;font-size:.85rem;font-weight:700;letter-spacing:.1em;border:none;border-radius:12px;cursor:pointer;">RESTART WITH SELECTED MIC</button>
+  <button id="mic-overlay-ok" style="width:100%;max-width:360px;padding:.8rem;background:none;border:1px solid var(--border);color:var(--muted);font-family:'Space Mono',monospace;font-size:.75rem;border-radius:12px;cursor:pointer;">Looks good — continue</button>
+</div>
+
 <!-- PROMPTER -->
 <div id="prompter">
   <div id="vol-meter"><div id="vol-bar"></div></div>
@@ -307,7 +324,26 @@ document.getElementById('mic-sl').addEventListener('change', function() {
   selectedMicId = this.value;
 });
 
-// ── FILE ────────────────────────────────────────────
+document.getElementById('mic-overlay-ok').addEventListener('click', function() {
+  document.getElementById('mic-overlay').style.display = 'none';
+});
+
+document.getElementById('mic-overlay-restart').addEventListener('click', function() {
+  var chosen = document.getElementById('mic-overlay-sl').value;
+  // Stop existing session
+  if (camStream) camStream.getTracks().forEach(function(t) { t.stop(); });
+  stopVolumeMeter();
+  isScrolling = false;
+  if (scrollRAF) cancelAnimationFrame(scrollRAF);
+  document.getElementById('mic-overlay').style.display = 'none';
+  document.getElementById('prompter').style.display = 'none';
+  // Pre-select in setup dropdown and restart
+  selectedMicId = chosen;
+  document.getElementById('mic-sl').value = chosen;
+  launchSession();
+});
+
+
 document.getElementById('file-input').addEventListener('change', function(e) {
   var f = e.target.files[0];
   if (!f) return;
@@ -359,15 +395,42 @@ function launchSession() {
     audio: audioConstraint
   }).then(function(s) {
     camStream = s;
-    // Now permission is granted — enumerate with real labels
-    // and update the dropdown so user can see + switch mics
-    refreshMicList(true);
-    // Show which audio track is actually active
-    var audioTracks = s.getAudioTracks();
-    if (audioTracks.length > 0) {
-      document.getElementById('active-mic-label').textContent =
-        '🎙 ' + (audioTracks[0].label || 'Microphone');
-    }
+    // Enumerate with real labels now that permission is granted
+    navigator.mediaDevices.enumerateDevices().then(function(devices) {
+      var audioInputs = devices.filter(function(d) { return d.kind === 'audioinput'; });
+
+      // Update setup dropdown for next time
+      var setupSel = document.getElementById('mic-sl');
+      setupSel.innerHTML = '<option value="">Auto (use plugged-in mic)</option>';
+      audioInputs.forEach(function(d) {
+        var opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || 'Microphone';
+        setupSel.appendChild(opt);
+      });
+
+      // Populate overlay dropdown
+      var overlaySel = document.getElementById('mic-overlay-sl');
+      overlaySel.innerHTML = '<option value="">Auto (current)</option>';
+      audioInputs.forEach(function(d) {
+        var opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || 'Microphone';
+        overlaySel.appendChild(opt);
+      });
+
+      // Show active mic name
+      var audioTracks = s.getAudioTracks();
+      var activeName = audioTracks.length > 0
+        ? (audioTracks[0].label || 'Microphone')
+        : 'Unknown';
+      document.getElementById('mic-overlay-active').textContent = '🎙 ' + activeName;
+      document.getElementById('active-mic-label').textContent = '🎙 ' + activeName;
+
+      // Show the overlay
+      document.getElementById('mic-overlay').style.display = 'flex';
+    }).catch(function() {});
+
     document.getElementById('setup').style.display = 'none';
     document.getElementById('prompter').style.display = 'flex';
     document.getElementById('video-el').srcObject = camStream;
