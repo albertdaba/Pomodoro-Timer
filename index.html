@@ -238,17 +238,8 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
       background:rgba(0,0,0,.5); border:1px solid var(--border);
       color:var(--accent); border-radius:8px; padding:.3rem .6rem;
       font-family:'Space Mono',monospace; font-size:.55rem;
-      max-width:55%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      max-width:60%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
     ">&#127908; detecting...</div>
-    <div id="mic-switch-box" style="
-      position:absolute; top:2.8rem; right:.9rem; z-index:20;
-      display:flex; gap:.4rem; align-items:center;
-    ">
-      <select id="live-mic-sl" style="background:rgba(0,0,0,.5);color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.3rem .5rem;font-family:'Space Mono',monospace;font-size:.55rem;outline:none;">
-        <option value="">Default</option>
-      </select>
-      <button onclick="switchMic(document.getElementById('live-mic-sl').value)" style="background:var(--accent);color:#000;border:none;border-radius:6px;padding:.3rem .6rem;font-family:'Space Mono',monospace;font-size:.55rem;font-weight:700;cursor:pointer;">USE</button>
-    </div>
     <div id="spd-box">
       <button class="spd" id="sl-btn">&#8722;</button>
       <span id="live-spd">3.0</span>&#215;
@@ -294,8 +285,6 @@ var textTotalH = 0, blobUrl = null;
 function refreshMicList(keepSelection) {
   navigator.mediaDevices.enumerateDevices().then(function(devices) {
     var audioInputs = devices.filter(function(d) { return d.kind === 'audioinput'; });
-
-    // Update setup dropdown
     var sel = document.getElementById('mic-sl');
     var prev = keepSelection ? sel.value : '';
     sel.innerHTML = '<option value="">Auto (use plugged-in mic)</option>';
@@ -307,20 +296,6 @@ function refreshMicList(keepSelection) {
     });
     if (prev) sel.value = prev;
     selectedMicId = sel.value;
-
-    // Also update live mic switcher inside the prompter
-    var liveSel = document.getElementById('live-mic-sl');
-    if (liveSel) {
-      var livePrev = liveSel.value;
-      liveSel.innerHTML = '<option value="">Auto</option>';
-      audioInputs.forEach(function(d) {
-        var opt = document.createElement('option');
-        opt.value = d.deviceId;
-        opt.textContent = d.label || 'Microphone';
-        liveSel.appendChild(opt);
-      });
-      if (livePrev) liveSel.value = livePrev;
-    }
   }).catch(function() {});
 }
 refreshMicList(false);
@@ -413,27 +388,6 @@ function launchSession() {
   }).catch(function(err) {
     alert('Camera & mic access required. Error: ' + err.message);
   });
-}
-
-// Switch mic mid-session without restarting video
-function switchMic(deviceId) {
-  var audioConstraint = deviceId ? { deviceId: { exact: deviceId } } : true;
-  navigator.mediaDevices.getUserMedia({ audio: audioConstraint, video: false })
-    .then(function(newAudioStream) {
-      var newAudioTrack = newAudioStream.getAudioTracks()[0];
-      if (!newAudioTrack) return;
-      // Stop old audio track
-      camStream.getAudioTracks().forEach(function(t) { t.stop(); camStream.removeTrack(t); });
-      // Add new one
-      camStream.addTrack(newAudioTrack);
-      stopVolumeMeter();
-      startVolumeMeter(camStream);
-      document.getElementById('active-mic-label').textContent =
-        '🎙 ' + (newAudioTrack.label || 'Microphone');
-    })
-    .catch(function(err) {
-      alert('Could not switch mic: ' + err.message);
-    });
 }
 
 // ── VOLUME METER ─────────────────────────────────────
