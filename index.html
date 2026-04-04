@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -276,7 +276,11 @@ document.getElementById('start-btn').addEventListener('click', function() {
 
 function launchSession() {
   navigator.mediaDevices.getUserMedia({
-    video: { facingMode: 'user', width: { ideal: 1080 }, height: { ideal: 1920 }, aspectRatio: { ideal: 0.5625 } },
+    video: {
+      facingMode: { ideal: 'user' },
+      width:  { ideal: 1080, max: 1080 },
+      height: { ideal: 1920, max: 1920 }
+    },
     audio: true
   }).then(function(s) {
     camStream = s;
