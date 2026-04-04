@@ -292,7 +292,7 @@ function launchSession() {
       facingMode: { ideal: 'user' },
       width:  { ideal: 1920 },
       height: { ideal: 1080 },
-      frameRate: { ideal: fps }
+      frameRate: { min: fps, ideal: fps }
     },
     audio: true
   }).then(function(s) {
@@ -386,8 +386,8 @@ function startRec() {
 
   try {
     mediaRecorder = mime
-      ? new MediaRecorder(camStream, { mimeType: mime })
-      : new MediaRecorder(camStream);
+      ? new MediaRecorder(camStream, { mimeType: mime, videoBitsPerSecond: 8000000 })
+      : new MediaRecorder(camStream, { videoBitsPerSecond: 8000000 });
   } catch(e) {
     try { mediaRecorder = new MediaRecorder(camStream); }
     catch(e2) { alert('Recording not supported on this browser.'); return; }
@@ -399,10 +399,10 @@ function startRec() {
 
   mediaRecorder.onstop = function() {
     // Wait to ensure all ondataavailable chunks have arrived
-    setTimeout(buildAndShowSave, 800);
+    setTimeout(buildAndShowSave, 1200);
   };
 
-  mediaRecorder.start(200);
+  mediaRecorder.start(1000);
 
   isRecording = true;
   elapsed = 0;
