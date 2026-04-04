@@ -1,5 +1,4 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -21,33 +20,33 @@ html,body {
 
 /* ── SETUP ── */
 #setup {
-display:flex; flex-direction:column; align-items:center; justify-content:center;
-height:100vh; padding:2rem 1.5rem; gap:1.8rem;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  height:100vh; padding:2rem 1.5rem; gap:1.8rem;
 }
-.logo { font-family:‘Space Mono’,monospace; font-size:1.1rem; letter-spacing:.25em; color:var(–accent); }
-.logo span { color:var(–muted); }
+.logo { font-family:'Space Mono',monospace; font-size:1.1rem; letter-spacing:.25em; color:var(--accent); }
+.logo span { color:var(--muted); }
 .upload-zone {
-width:100%; max-width:340px; border:1.5px dashed var(–border); border-radius:16px;
-padding:2rem 1.5rem; display:flex; flex-direction:column; align-items:center; gap:.6rem;
-cursor:pointer; position:relative; transition:border-color .2s,background .2s;
+  width:100%; max-width:340px; border:1.5px dashed var(--border); border-radius:16px;
+  padding:2rem 1.5rem; display:flex; flex-direction:column; align-items:center; gap:.6rem;
+  cursor:pointer; position:relative; transition:border-color .2s,background .2s;
 }
-.upload-zone:hover { border-color:var(–accent); background:#00ff8808; }
+.upload-zone:hover { border-color:var(--accent); background:#00ff8808; }
 .upload-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
 .upload-icon { font-size:2rem; }
-.upload-label { font-size:.85rem; color:var(–muted); text-align:center; }
-.upload-label strong { color:var(–text); display:block; }
-#file-name { font-family:‘Space Mono’,monospace; font-size:.7rem; color:var(–accent); background:#00ff8815; padding:.25rem .6rem; border-radius:6px; display:none; }
+.upload-label { font-size:.85rem; color:var(--muted); text-align:center; }
+.upload-label strong { color:var(--text); display:block; }
+#file-name { font-family:'Space Mono',monospace; font-size:.7rem; color:var(--accent); background:#00ff8815; padding:.25rem .6rem; border-radius:6px; display:none; }
 .controls { display:flex; flex-direction:column; gap:.9rem; width:100%; max-width:340px; }
 .row { display:flex; align-items:center; gap:.75rem; }
-.lbl { font-family:‘Space Mono’,monospace; font-size:.62rem; color:var(–muted); text-transform:uppercase; letter-spacing:.1em; width:55px; flex-shrink:0; }
-input[type=range] { -webkit-appearance:none; flex:1; height:3px; background:var(–border); border-radius:2px; outline:none; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(–accent); cursor:pointer; }
-.val { font-family:‘Space Mono’,monospace; font-size:.7rem; color:var(–accent); width:26px; text-align:right; }
+.lbl { font-family:'Space Mono',monospace; font-size:.62rem; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; width:55px; flex-shrink:0; }
+input[type=range] { -webkit-appearance:none; flex:1; height:3px; background:var(--border); border-radius:2px; outline:none; }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; height:18px; border-radius:50%; background:var(--accent); cursor:pointer; }
+.val { font-family:'Space Mono',monospace; font-size:.7rem; color:var(--accent); width:26px; text-align:right; }
 #start-btn {
-width:100%; max-width:340px; padding:1rem; border:none; border-radius:14px;
-background:var(–accent); color:#000; font-family:‘Space Mono’,monospace;
-font-size:.85rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
-cursor:pointer; opacity:.3; pointer-events:none; transition:opacity .2s;
+  width:100%; max-width:340px; padding:1rem; border:none; border-radius:14px;
+  background:var(--accent); color:#000; font-family:'Space Mono',monospace;
+  font-size:.85rem; font-weight:700; letter-spacing:.12em; text-transform:uppercase;
+  cursor:pointer; opacity:.3; pointer-events:none; transition:opacity .2s;
 }
 #start-btn.ready { opacity:1; pointer-events:all; }
 
@@ -56,29 +55,29 @@ cursor:pointer; opacity:.3; pointer-events:none; transition:opacity .2s;
 
 /* TOP 25% — text band */
 #text-band {
-height:25vh; overflow:hidden; position:relative;
-background:rgba(0,0,0,.92); flex-shrink:0; z-index:10;
+  height:25vh; overflow:hidden; position:relative;
+  background:rgba(0,0,0,.92); flex-shrink:0; z-index:10;
 }
 #text-band::before,#text-band::after {
-content:’’; position:absolute; left:0; right:0; height:28px; z-index:2; pointer-events:none;
+  content:''; position:absolute; left:0; right:0; height:28px; z-index:2; pointer-events:none;
 }
 #text-band::before { top:0; background:linear-gradient(to bottom,rgba(0,0,0,.92),transparent); }
 #text-band::after  { bottom:0; background:linear-gradient(to top,rgba(0,0,0,.92),transparent); }
 #cursor-line {
-position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
-height:2px; background:var(–accent); box-shadow:0 0 10px var(–accent); opacity:.6; z-index:3;
+  position:absolute; left:0; right:0; top:50%; transform:translateY(-50%);
+  height:2px; background:var(--accent); box-shadow:0 0 10px var(--accent); opacity:.6; z-index:3;
 }
 #scroll-inner { position:absolute; width:100%; padding:1.5rem 1.2rem; will-change:transform; }
 #scroll-text {
-font-family:‘DM Sans’,sans-serif; font-weight:600; line-height:1.7;
-color:#fff; text-align:center; text-shadow:0 0 18px rgba(0,255,136,.3);
+  font-family:'DM Sans',sans-serif; font-weight:600; line-height:1.7;
+  color:#fff; text-align:center; text-shadow:0 0 18px rgba(0,255,136,.3);
 }
 
 /* divider */
 #divider {
-height:2px; flex-shrink:0; z-index:10;
-background:linear-gradient(90deg,transparent,var(–accent),transparent);
-box-shadow:0 0 8px var(–accent-dim);
+  height:2px; flex-shrink:0; z-index:10;
+  background:linear-gradient(90deg,transparent,var(--accent),transparent);
+  box-shadow:0 0 8px var(--accent-dim);
 }
 
 /* BOTTOM 75% — camera */
@@ -86,95 +85,93 @@ box-shadow:0 0 8px var(–accent-dim);
 #video-el { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; }
 
 #back-btn {
-position:absolute; top:.9rem; left:.9rem; z-index:20;
-background:rgba(0,0,0,.55); border:1px solid var(–border);
-color:var(–muted); border-radius:8px; padding:.4rem .7rem;
-font-family:‘Space Mono’,monospace; font-size:.62rem; cursor:pointer;
+  position:absolute; top:.9rem; left:.9rem; z-index:20;
+  background:rgba(0,0,0,.55); border:1px solid var(--border);
+  color:var(--muted); border-radius:8px; padding:.4rem .7rem;
+  font-family:'Space Mono',monospace; font-size:.62rem; cursor:pointer;
 }
 #spd-box {
-position:absolute; top:.9rem; right:.9rem; z-index:20;
-background:rgba(0,0,0,.55); border:1px solid var(–border);
-border-radius:8px; padding:.35rem .6rem;
-font-family:‘Space Mono’,monospace; font-size:.62rem;
-display:flex; align-items:center; gap:.4rem;
+  position:absolute; top:.9rem; right:.9rem; z-index:20;
+  background:rgba(0,0,0,.55); border:1px solid var(--border);
+  border-radius:8px; padding:.35rem .6rem;
+  font-family:'Space Mono',monospace; font-size:.62rem;
+  display:flex; align-items:center; gap:.4rem;
 }
-.spd { background:none; border:none; color:var(–accent); font-family:‘Space Mono’,monospace; font-size:.8rem; cursor:pointer; padding:0 2px; }
+.spd { background:none; border:none; color:var(--accent); font-family:'Space Mono',monospace; font-size:.8rem; cursor:pointer; padding:0 2px; }
 
 #hud {
-position:absolute; bottom:0; left:0; right:0; z-index:15;
-padding:1rem 1.4rem; display:flex; align-items:flex-end; justify-content:space-between;
-background:linear-gradient(to top,rgba(0,0,0,.65),transparent);
+  position:absolute; bottom:0; left:0; right:0; z-index:15;
+  padding:1rem 1.4rem; display:flex; align-items:flex-end; justify-content:space-between;
+  background:linear-gradient(to top,rgba(0,0,0,.65),transparent);
 }
-#rec-ind { display:flex; align-items:center; gap:.5rem; font-family:‘Space Mono’,monospace; font-size:.68rem; color:#fff; opacity:0; transition:opacity .3s; }
+#rec-ind { display:flex; align-items:center; gap:.5rem; font-family:'Space Mono',monospace; font-size:.68rem; color:#fff; opacity:0; transition:opacity .3s; }
 #rec-ind.on { opacity:1; }
-.dot { width:8px; height:8px; border-radius:50%; background:var(–danger); animation:blink 1s infinite; }
+.dot { width:8px; height:8px; border-radius:50%; background:var(--danger); animation:blink 1s infinite; }
 @keyframes blink { 0%,100%{opacity:1}50%{opacity:.15} }
-#timer { font-family:‘Space Mono’,monospace; font-size:.68rem; color:#fff; }
+#timer { font-family:'Space Mono',monospace; font-size:.68rem; color:#fff; }
 
 #rec-btn {
-position:absolute; bottom:1.3rem; left:50%; transform:translateX(-50%);
-width:64px; height:64px; border-radius:50%; border:3px solid #fff;
-background:transparent; display:flex; align-items:center; justify-content:center;
-cursor:pointer; z-index:20;
+  position:absolute; bottom:1.3rem; left:50%; transform:translateX(-50%);
+  width:64px; height:64px; border-radius:50%; border:3px solid #fff;
+  background:transparent; display:flex; align-items:center; justify-content:center;
+  cursor:pointer; z-index:20;
 }
-#rec-inner { width:40px; height:40px; border-radius:50%; background:var(–danger); transition:border-radius .2s,width .2s,height .2s; }
+#rec-inner { width:40px; height:40px; border-radius:50%; background:var(--danger); transition:border-radius .2s,width .2s,height .2s; }
 #rec-btn.rec #rec-inner { border-radius:6px; width:26px; height:26px; }
 
 /* ── SAVE SCREEN ── */
 #save-screen {
-display:none;
-position:fixed; inset:0; z-index:99999;
-background:#0a0a0a;
-flex-direction:column; align-items:center; justify-content:center;
-padding:2rem 1.5rem; gap:1.2rem;
-touch-action:pan-y;
+  display:none;
+  position:fixed; inset:0; z-index:99999;
+  background:#0a0a0a;
+  flex-direction:column; align-items:center; justify-content:center;
+  padding:2rem 1.5rem; gap:1.2rem;
+  touch-action:pan-y;
 }
 #save-screen.on { display:flex; }
-#save-title { font-family:‘Space Mono’,monospace; font-size:1rem; color:var(–accent); letter-spacing:.15em; text-align:center; }
-#save-status { font-family:‘Space Mono’,monospace; font-size:.78rem; color:var(–muted); text-align:center; }
+#save-title { font-family:'Space Mono',monospace; font-size:1rem; color:var(--accent); letter-spacing:.15em; text-align:center; }
+#save-status { font-family:'Space Mono',monospace; font-size:.78rem; color:var(--muted); text-align:center; }
 #preview {
-width:100%; max-width:420px; border-radius:12px;
-background:#111; max-height:34vh;
-/* controls shown so user can use native share on iOS */
+  width:100%; max-width:420px; border-radius:12px;
+  background:#111; max-height:34vh;
+  /* controls shown so user can use native share on iOS */
 }
 #save-instructions {
-font-size:.8rem; color:var(–muted); text-align:center; line-height:1.6; max-width:320px;
-display:none;
+  font-size:.8rem; color:var(--muted); text-align:center; line-height:1.6; max-width:320px;
+  display:none;
 }
 
 /* The download button — visible on Android/desktop */
 #dl-btn {
-width:100%; max-width:420px; padding:1.2rem;
-background:var(–accent); color:#000;
-font-family:‘Space Mono’,monospace; font-size:1.05rem; font-weight:700;
-letter-spacing:.1em; text-align:center; text-decoration:none;
-border-radius:14px; border:none; cursor:pointer;
-display:none; /* shown by JS after blob ready */
+  width:100%; max-width:420px; padding:1.2rem;
+  background:var(--accent); color:#000;
+  font-family:'Space Mono',monospace; font-size:1.05rem; font-weight:700;
+  letter-spacing:.1em; text-align:center; text-decoration:none;
+  border-radius:14px; border:none; cursor:pointer;
+  display:none; /* shown by JS after blob ready */
 }
 
-/* iOS share hint button */
+/* iOS open button */
 #ios-hint {
-width:100%; max-width:420px; padding:1rem;
-background:#1a1a1a; color:var(–accent);
-font-family:‘Space Mono’,monospace; font-size:.8rem;
-letter-spacing:.08em; text-align:center;
-border-radius:14px; border:1px solid var(–border);
-cursor:pointer; display:none;
+  width:100%; max-width:420px; padding:1.2rem;
+  background:var(--accent); color:#000;
+  font-family:'Space Mono',monospace; font-size:1.05rem; font-weight:700;
+  letter-spacing:.08em; text-align:center;
+  border-radius:14px; border:none;
+  cursor:pointer; display:none;
 }
 
 #new-btn {
-width:100%; max-width:420px; padding:.8rem;
-background:none; border:1px solid var(–border); color:var(–muted);
-font-family:‘Space Mono’,monospace; font-size:.72rem; border-radius:12px; cursor:pointer;
-display:none;
+  width:100%; max-width:420px; padding:.8rem;
+  background:none; border:1px solid var(--border); color:var(--muted);
+  font-family:'Space Mono',monospace; font-size:.72rem; border-radius:12px; cursor:pointer;
+  display:none;
 }
 </style>
-
 </head>
 <body>
 
 <!-- SETUP -->
-
 <div id="setup">
   <div class="logo">Prompter<span>Cam</span></div>
   <div class="upload-zone">
@@ -199,7 +196,6 @@ display:none;
 </div>
 
 <!-- PROMPTER -->
-
 <div id="prompter">
   <div id="text-band">
     <div id="cursor-line"></div>
@@ -223,14 +219,13 @@ display:none;
 </div>
 
 <!-- SAVE SCREEN -->
-
 <div id="save-screen">
   <div id="save-title">&#127916; Recording Done</div>
   <div id="save-status">Processing&hellip;</div>
   <video id="preview" controls playsinline webkit-playsinline style="display:none"></video>
   <div id="save-instructions"></div>
   <a id="dl-btn" href="#">&#11015; Download Video</a>
-  <button id="ios-hint">&#8679; Tap the share icon in the video player above to Save to Photos</button>
+  <button id="ios-hint" onclick="if(window._blobUrl)window.open(window._blobUrl,'_blank');">&#9654; Open Video to Save</button>
   <button id="new-btn">Discard &amp; record again</button>
 </div>
 
@@ -446,6 +441,7 @@ function buildAndShowSave() {
   var mimeType = (recordedChunks[0] && recordedChunks[0].type) ? recordedChunks[0].type : 'video/mp4';
   var blob = new Blob(recordedChunks, { type: mimeType });
   blobUrl = URL.createObjectURL(blob);
+  window._blobUrl = blobUrl;
 
   // Show video preview
   var preview = document.getElementById('preview');
@@ -454,20 +450,18 @@ function buildAndShowSave() {
 
   document.getElementById('save-status').style.display = 'none';
 
+  var ext = mimeType.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
+  var dlBtn = document.getElementById('dl-btn');
+  dlBtn.setAttribute('href', blobUrl);
+  dlBtn.setAttribute('download', 'promptercam_' + Date.now() + '.' + ext);
+  dlBtn.style.display = 'block';
+
   if (isIOS) {
-    // iOS Safari: download attribute is ignored; user must use native share sheet
-    // Show the video with controls + instructions to use the share button
     document.getElementById('save-instructions').innerHTML =
-      'To save: tap the <strong style="color:#fff">&#9654;</strong> play button, then tap the <strong style="color:#fff">share &#8679;</strong> icon and choose <strong style="color:#fff">Save Video</strong>.';
+      'Tap <strong style="color:#00ff88">Open Video</strong> below. ' +
+      'Safari will open it in a new tab. Then tap the <strong style="color:#00ff88">Share &#8679;</strong> button at the bottom of Safari and choose <strong style="color:#00ff88">Save to Photos</strong>.';
     document.getElementById('save-instructions').style.display = 'block';
     document.getElementById('ios-hint').style.display = 'block';
-  } else {
-    // Android / desktop: programmatic download works fine
-    var ext = mimeType.indexOf('mp4') !== -1 ? 'mp4' : 'webm';
-    var dlBtn = document.getElementById('dl-btn');
-    dlBtn.setAttribute('href', blobUrl);
-    dlBtn.setAttribute('download', 'promptercam_' + Date.now() + '.' + ext);
-    dlBtn.style.display = 'block';
   }
 
   document.getElementById('new-btn').style.display = 'block';
@@ -497,6 +491,5 @@ document.getElementById('new-btn').addEventListener('click', function() {
   startScrolling();
 });
 </script>
-
 </body>
 </html>
