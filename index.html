@@ -192,7 +192,11 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
       <div class="val" id="size-v">20</div>
     </div>
     <div class="row">
-      <div class="lbl">FPS</div>
+      <div class="lbl">Mic</div>
+      <select id="mic-sl" style="flex:1;background:#1a1a1a;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;font-family:'Space Mono',monospace;font-size:.7rem;outline:none;">
+        <option value="">Default Mic</option>
+      </select>
+    </div>
       <select id="fps-sl" style="flex:1;background:#1a1a1a;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;font-family:'Space Mono',monospace;font-size:.7rem;outline:none;">
         <option value="24" selected>24 fps</option>
         <option value="30">30 fps</option>
@@ -247,7 +251,32 @@ document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, {
 // Detect iOS
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-var scriptText = '', scrollSpeed = 0.5, fontSize = 20, fps = 24;
+var scriptText = '', scrollSpeed = 0.5, fontSize = 20, fps = 24, selectedMicId = '';
+
+// ── ENUMERATE AUDIO DEVICES ──────────────────────────
+// Request audio permission first so device labels are visible, then populate mic list
+navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+  .then(function(tmpStream) {
+    tmpStream.getTracks().forEach(function(t) { t.stop(); });
+    return navigator.mediaDevices.enumerateDevices();
+  })
+  .then(function(devices) {
+    var sel = document.getElementById('mic-sl');
+    sel.innerHTML = '<option value="">Default Mic</option>';
+    devices.forEach(function(d) {
+      if (d.kind === 'audioinput') {
+        var opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || ('Mic ' + d.deviceId.substr(0, 6));
+        sel.appendChild(opt);
+      }
+    });
+  })
+  .catch(function() { /* permission denied — default mic will be used */ });
+
+document.getElementById('mic-sl').addEventListener('change', function() {
+  selectedMicId = this.value;
+});
 var isScrolling = false, scrollPos = 0, scrollRAF = null;
 var camStream = null, mediaRecorder = null, recordedChunks = [];
 var isRecording = false, timerInterval = null, elapsed = 0;
@@ -294,7 +323,7 @@ function launchSession() {
       height: { ideal: 1080 },
       frameRate: { min: fps, ideal: fps }
     },
-    audio: true
+    audio: selectedMicId ? { deviceId: { exact: selectedMicId } } : true
   }).then(function(s) {
     camStream = s;
     document.getElementById('setup').style.display = 'none';
