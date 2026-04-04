@@ -183,13 +183,21 @@ input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:18px; h
   <div class="controls">
     <div class="row">
       <div class="lbl">Speed</div>
-      <input type="range" id="speed-sl" min="1" max="10" value="3" step="0.5">
-      <div class="val" id="speed-v">3</div>
+      <input type="range" id="speed-sl" min="0.5" max="10" value="0.5" step="0.5">
+      <div class="val" id="speed-v">0.5</div>
     </div>
     <div class="row">
       <div class="lbl">Size</div>
       <input type="range" id="size-sl" min="14" max="36" value="20" step="1">
       <div class="val" id="size-v">20</div>
+    </div>
+    <div class="row">
+      <div class="lbl">FPS</div>
+      <select id="fps-sl" style="flex:1;background:#1a1a1a;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:.4rem .6rem;font-family:'Space Mono',monospace;font-size:.7rem;outline:none;">
+        <option value="24" selected>24 fps</option>
+        <option value="30">30 fps</option>
+        <option value="60">60 fps</option>
+      </select>
     </div>
   </div>
   <button id="start-btn">Start Session</button>
@@ -239,7 +247,7 @@ document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, {
 // Detect iOS
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
-var scriptText = '', scrollSpeed = 3, fontSize = 20;
+var scriptText = '', scrollSpeed = 0.5, fontSize = 20, fps = 24;
 var isScrolling = false, scrollPos = 0, scrollRAF = null;
 var camStream = null, mediaRecorder = null, recordedChunks = [];
 var isRecording = false, timerInterval = null, elapsed = 0;
@@ -269,7 +277,11 @@ document.getElementById('size-sl').addEventListener('input', function() {
   document.getElementById('size-v').textContent = fontSize;
 });
 
-// ── START ────────────────────────────────────────────
+document.getElementById('fps-sl').addEventListener('change', function() {
+  fps = parseInt(this.value);
+});
+
+
 document.getElementById('start-btn').addEventListener('click', function() {
   if (scriptText) launchSession();
 });
@@ -279,7 +291,8 @@ function launchSession() {
     video: {
       facingMode: { ideal: 'user' },
       width:  { ideal: 1920 },
-      height: { ideal: 1080 }
+      height: { ideal: 1080 },
+      frameRate: { ideal: fps }
     },
     audio: true
   }).then(function(s) {
