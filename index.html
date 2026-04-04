@@ -268,35 +268,38 @@ document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, {
 var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
 
 var scriptText = '', scrollSpeed = 0.5, fontSize = 20, fps = 24, selectedMicId = '';
-
-// ── ENUMERATE AUDIO DEVICES ──────────────────────────
-// Request audio permission first so device labels are visible, then populate mic list
-navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-  .then(function(tmpStream) {
-    tmpStream.getTracks().forEach(function(t) { t.stop(); });
-    return navigator.mediaDevices.enumerateDevices();
-  })
-  .then(function(devices) {
-    var sel = document.getElementById('mic-sl');
-    sel.innerHTML = '<option value="">Default Mic</option>';
-    devices.forEach(function(d) {
-      if (d.kind === 'audioinput') {
-        var opt = document.createElement('option');
-        opt.value = d.deviceId;
-        opt.textContent = d.label || ('Mic ' + d.deviceId.substr(0, 6));
-        sel.appendChild(opt);
-      }
-    });
-  })
-  .catch(function() { /* permission denied — default mic will be used */ });
-
-document.getElementById('mic-sl').addEventListener('change', function() {
-  selectedMicId = this.value;
-});
 var isScrolling = false, scrollPos = 0, scrollRAF = null;
 var camStream = null, mediaRecorder = null, recordedChunks = [];
 var isRecording = false, timerInterval = null, elapsed = 0;
 var textTotalH = 0, blobUrl = null;
+
+// Populate mic list (no labels until permission granted, that's OK)
+// Re-runs after session starts and on device plug/unplug
+function refreshMicList(keepSelection) {
+  navigator.mediaDevices.enumerateDevices().then(function(devices) {
+    var sel = document.getElementById('mic-sl');
+    var prev = keepSelection ? sel.value : '';
+    sel.innerHTML = '<option value="">Default (use plugged-in mic)</option>';
+    devices.forEach(function(d) {
+      if (d.kind === 'audioinput') {
+        var opt = document.createElement('option');
+        opt.value = d.deviceId;
+        opt.textContent = d.label || 'Microphone';
+        sel.appendChild(opt);
+      }
+    });
+    if (prev) sel.value = prev;
+    selectedMicId = sel.value;
+  }).catch(function() {});
+}
+refreshMicList(false);
+
+// Re-enumerate when a mic is plugged in/out
+navigator.mediaDevices.ondevicechange = function() { refreshMicList(true); };
+
+document.getElementById('mic-sl').addEventListener('change', function() {
+  selectedMicId = this.value;
+});
 
 // ── FILE ────────────────────────────────────────────
 document.getElementById('file-input').addEventListener('change', function(e) {
@@ -339,9 +342,13 @@ function launchSession() {
       height: { ideal: 1080 },
       frameRate: { min: fps, ideal: fps }
     },
-    audio: selectedMicId ? { deviceId: { exact: selectedMicId } } : true
+    audio: selectedMicId
+      ? { deviceId: { exact: selectedMicId }, echoCancellation: false, noiseSuppression: false, autoGainControl: false }
+      : { echoCancellation: false, noiseSuppression: false, autoGainControl: false }
   }).then(function(s) {
     camStream = s;
+    // Now that permission is granted, re-enumerate to get real device labels
+    refreshMicList(true);
     document.getElementById('setup').style.display = 'none';
     document.getElementById('prompter').style.display = 'flex';
     document.getElementById('video-el').srcObject = camStream;
