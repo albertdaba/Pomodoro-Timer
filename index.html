@@ -1,876 +1,1780 @@
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no, viewport-fit=cover">
-<title>PrompterCam</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0, minimum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#111118">
+<title>Spritebox</title>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@300;400;600&display=swap');
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+html{overflow:hidden;position:fixed;width:100%;height:100%;touch-action:none;overscroll-behavior:none}
+body{overflow:hidden;position:fixed;width:100%;height:100%;touch-action:none;overscroll-behavior:none;background:#111118;color:#c8c8dd;font-family:'SF Mono','Menlo','Consolas','Courier New',monospace;font-size:13px;display:flex;flex-direction:column;height:100dvh}
 
-* { margin:0; padding:0; box-sizing:border-box; }
+/* ── TOP BAR ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#18182a;border-bottom:1px solid #28284a;flex-shrink:0;min-height:48px;z-index:100}
+.topbar-group{display:flex;gap:6px}
+.topbar h1{font-size:14px;font-weight:800;color:#7b7bbb;letter-spacing:2px;text-transform:uppercase}
+.btn{min-width:44px;min-height:44px;display:inline-flex;align-items:center;justify-content:center;gap:5px;background:#222240;border:1px solid #333360;border-radius:8px;color:#a0a0cc;cursor:pointer;padding:6px 10px;font-size:12px;font-family:inherit;transition:background .12s,border-color .12s}
+.btn:active{background:#333366}
+.btn.on{background:#3d3d70;border-color:#6666aa;color:#d8d8ff}
+.btn svg{width:18px;height:18px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.btn.sm{min-width:44px;min-height:44px;padding:4px 10px;font-size:11px;border-radius:6px}
 
-:root {
-  --bg: #0c0c0c;
-  --surface: #141414;
-  --border: #1e1e1e;
-  --accent: #e8ff47;
-  --accent-dim: #e8ff4733;
-  --text: #efefef;
-  --muted: #444;
-  --danger: #ff4560;
-}
+/* ── DRAWERS ── */
+.drawer{overflow:hidden;max-height:0;transition:max-height .2s ease;background:#1a1a30;border-bottom:1px solid #28284a;flex-shrink:0;z-index:90}
+.drawer.open{max-height:260px}
+.drawer-inner{display:flex;flex-wrap:wrap;gap:6px;padding:10px}
+.drawer-row{width:100%;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.drawer-label{width:100%;font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#5555aa;margin-bottom:2px;margin-top:6px}
+.drawer-label:first-child{margin-top:0}
+.num-input{width:48px;background:#222240;border:1px solid #333360;border-radius:5px;color:#c8c8dd;padding:5px;font-size:12px;font-family:inherit;text-align:center;-webkit-user-select:text;user-select:text}
 
-html, body {
-  height:100%; width:100%;
-  background:var(--bg); color:var(--text);
-  font-family:'Geist Mono', monospace;
-  overflow:hidden;
-  touch-action:none;
-  overscroll-behavior:none;
-  -webkit-user-select:none; user-select:none;
-}
+/* ── CANVAS AREA ── */
+.canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;min-height:0}
+#spriteCanvas{image-rendering:pixelated;touch-action:none}
+.onion-layer{position:absolute;pointer-events:none;image-rendering:pixelated}
+#onionPrev{opacity:.25}
+#onionNext{opacity:.15}
 
-/* ── SETUP ───────────────────────────────────────── */
-#setup {
-  display:flex; flex-direction:column;
-  align-items:center; justify-content:center;
-  height:100vh; padding:2.5rem 1.8rem;
-  gap:2rem; position:relative;
-}
+/* ── TAB BAR ── */
+.tabbar{display:flex;align-items:center;gap:5px;padding:5px 10px;background:#18182a;border-top:1px solid #28284a;border-bottom:1px solid #28284a;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;min-height:46px;scrollbar-width:none}
+.tabbar::-webkit-scrollbar{display:none}
+.tab{position:relative;min-width:44px;height:34px;display:flex;align-items:center;justify-content:center;background:#222240;border:1px solid #333360;border-radius:6px;color:#8888aa;font-size:12px;font-weight:600;padding:0 14px;cursor:pointer;flex-shrink:0;transition:background .12s}
+.tab.active{background:#3d3d70;border-color:#6666aa;color:#e0e0ff}
+.tab-x{position:absolute;top:-7px;right:-7px;width:22px;height:22px;background:#aa3333;border-radius:50%;display:none;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;border:2px solid #111118;line-height:1}
+.tab.active .tab-x{display:flex}
+.tab-add{background:transparent;border:1px dashed #444466;color:#5555aa;font-size:20px;font-weight:400}
 
-.wordmark {
-  font-family:'Instrument Serif', serif;
-  font-size:1.6rem;
-  color:var(--text);
-  letter-spacing:-.02em;
-  display:flex; align-items:baseline; gap:.3rem;
-}
-.wordmark em {
-  font-style:italic;
-  color:var(--accent);
-}
+/* ── PALETTE ── */
+.palette-area{padding:6px 10px 10px;background:#18182a;border-top:1px solid #28284a;flex-shrink:0}
+.pal-info{display:flex;align-items:center;gap:8px;margin-bottom:5px}
+.pal-info-swatch{width:24px;height:24px;border-radius:4px;border:1px solid #333360;flex-shrink:0}
+.pal-info-swatch.is-trans{background-image:linear-gradient(45deg,#555 25%,transparent 25%),linear-gradient(-45deg,#555 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#555 75%),linear-gradient(-45deg,transparent 75%,#555 75%);background-size:8px 8px;background-position:0 0,0 4px,4px -4px,-4px 0}
+.pal-info-label{font-size:11px;color:#6666aa}
+.palette-grid{display:grid;grid-template-columns:repeat(8,1fr);gap:3px}
+.sw{aspect-ratio:1;border-radius:4px;border:2px solid transparent;cursor:pointer;min-height:34px;position:relative;transition:border-color .1s}
+.sw.sel{border-color:#fff;box-shadow:0 0 5px rgba(255,255,255,.35)}
+.sw.tr{background-image:linear-gradient(45deg,#555 25%,transparent 25%),linear-gradient(-45deg,#555 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#555 75%),linear-gradient(-45deg,transparent 75%,#555 75%);background-size:8px 8px;background-position:0 0,0 4px,4px -4px,-4px 0}
+.sw.tr::after{content:‘T’;position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:#fff;text-shadow:0 1px 2px #000}
 
-.upload-zone {
-  width:100%; max-width:360px;
-  border:1px solid var(--border);
-  border-radius:18px;
-  padding:2rem 1.5rem;
-  display:flex; flex-direction:column; align-items:center; gap:.7rem;
-  cursor:pointer; position:relative;
-  background:var(--surface);
-  transition:border-color .2s, background .2s;
-}
-.upload-zone.has-file { border-color:var(--accent); background:#e8ff4708; }
-.upload-zone input { position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%; }
-.upload-icon { font-size:1.6rem; opacity:.6; }
-.upload-label { font-size:.72rem; color:var(--muted); text-align:center; line-height:1.6; letter-spacing:.05em; text-transform:uppercase; }
-.upload-label strong { color:var(--text); display:block; font-size:.82rem; text-transform:none; letter-spacing:0; }
-#file-name { font-size:.68rem; color:var(--accent); background:var(--accent-dim); padding:.25rem .65rem; border-radius:6px; display:none; letter-spacing:.04em; }
+/* ── OVERLAYS ── */
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;display:none;align-items:center;justify-content:center}
+.overlay.show{display:flex}
+.panel{background:#1c1c34;border:1px solid #333360;border-radius:12px;padding:16px;width:88%;max-width:320px}
+.panel h3{font-size:14px;color:#8888cc;margin-bottom:12px;font-weight:700}
+.panel-row{display:flex;align-items:center;gap:8px;margin-bottom:10px;font-size:12px;color:#9999bb}
+.panel-row input[type=“range”]{flex:1;accent-color:#6666aa}
+.panel-row .rv{min-width:24px;text-align:right;font-size:12px;font-variant-numeric:tabular-nums}
+.panel-preview{width:100%;height:36px;border-radius:6px;margin:8px 0;border:1px solid #333360}
+.panel-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:12px}
+.btn-ok{background:#2a4a2a;border-color:#44aa44;color:#bbffbb}
+.btn-danger{background:#4a2a2a;border-color:#aa4444;color:#ffbbbb}
 
-.controls { display:flex; flex-direction:column; gap:.75rem; width:100%; max-width:360px; }
-.ctrl-row { display:flex; align-items:center; gap:.8rem; }
-.ctrl-lbl { font-size:.58rem; color:var(--muted); text-transform:uppercase; letter-spacing:.1em; width:50px; flex-shrink:0; }
-input[type=range] { -webkit-appearance:none; flex:1; height:2px; background:var(--border); border-radius:2px; outline:none; }
-input[type=range]::-webkit-slider-thumb { -webkit-appearance:none; width:16px; height:16px; border-radius:50%; background:var(--accent); cursor:pointer; box-shadow:0 0 6px var(--accent-dim); }
-.ctrl-val { font-size:.68rem; color:var(--accent); width:28px; text-align:right; }
+/* ── ANIMATION CONTROLS ── */
+.anim-bar{display:none;flex-direction:column;align-items:center;gap:10px;padding:14px 10px;background:#18182a;border-top:1px solid #28284a;flex-shrink:0}
+.anim-bar.show{display:flex}
+.fps-row{display:flex;align-items:center;gap:10px;width:100%}
+.fps-row input[type=“range”]{flex:1;accent-color:#6666aa}
+.fps-label{font-size:12px;color:#8888aa;min-width:60px;font-variant-numeric:tabular-nums}
 
-#start-btn {
-  width:100%; max-width:360px;
-  padding:1.1rem; border:none; border-radius:14px;
-  background:var(--accent); color:#0c0c0c;
-  font-family:'Geist Mono',monospace; font-size:.82rem; font-weight:600;
-  letter-spacing:.1em; text-transform:uppercase;
-  cursor:pointer; opacity:.3; pointer-events:none;
-  transition:opacity .25s, transform .1s;
-}
-#start-btn.ready { opacity:1; pointer-events:all; }
-#start-btn:active { transform:scale(.97); }
+/* ── TOAST ── */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:rgba(60,60,110,.92);color:#d8d8ff;padding:7px 16px;border-radius:20px;font-size:12px;z-index:700;opacity:0;transition:opacity .25s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
 
-/* settings gear */
-#settings-btn {
-  position:absolute; top:1.2rem; right:1.2rem;
-  width:38px; height:38px; border-radius:50%;
-  background:var(--surface); border:1px solid var(--border);
-  display:flex; align-items:center; justify-content:center;
-  cursor:pointer; font-size:1rem;
-  transition:border-color .2s;
-}
-#settings-btn:hover { border-color:var(--accent); }
+.hidden{position:absolute;opacity:0;pointer-events:none;width:0;height:0}
 
-/* ── SETTINGS PANEL ──────────────────────────────── */
-#settings-panel {
-  display:none;
-  position:fixed; inset:0; z-index:9000;
-  background:rgba(12,12,12,.95);
-  flex-direction:column; align-items:center; justify-content:center;
-  padding:2.5rem 1.8rem; gap:1.8rem;
-}
-#settings-panel.open { display:flex; }
+/* ── IMPORT SPRITE MODE ── */
+.import-active .palette-area,.import-active .tabbar,.import-active .topbar{pointer-events:none;opacity:.3}
+.import-img{position:absolute;image-rendering:pixelated;opacity:.85;pointer-events:none;transform-origin:0 0;z-index:10;border:1px dashed rgba(255,255,255,.35)}
+.import-bar{position:fixed;bottom:0;left:0;right:0;display:none;align-items:center;justify-content:center;gap:12px;padding:14px 10px;background:linear-gradient(transparent,rgba(17,17,24,.95) 30%);z-index:200}
+.import-bar.show{display:flex}
+.import-bar .btn{min-width:80px;font-size:13px;font-weight:600}
+.import-hint{position:fixed;top:56px;left:50%;transform:translateX(-50%);background:rgba(60,60,110,.92);color:#d8d8ff;padding:7px 14px;border-radius:8px;font-size:11px;z-index:200;display:none;white-space:nowrap;text-align:center;line-height:1.4}
+.import-hint.show{display:block}
 
-.settings-title {
-  font-size:.7rem; text-transform:uppercase; letter-spacing:.15em;
-  color:var(--muted);
-}
+/* ── TAB CONTEXT MENU ── */
+.tab-menu{position:fixed;z-index:400;background:#1c1c34;border:1px solid #333360;border-radius:10px;padding:6px;display:none;flex-direction:column;gap:2px;min-width:140px;box-shadow:0 8px 24px rgba(0,0,0,.5)}
+.tab-menu.show{display:flex}
+.tab-menu .btn{width:100%;justify-content:flex-start;border:none;background:transparent;border-radius:6px;font-size:13px;min-height:40px}
+.tab-menu .btn:active{background:#333366}
 
-.setting-row {
-  width:100%; max-width:360px;
-  display:flex; align-items:center; justify-content:space-between;
-  padding:.9rem 1rem;
-  background:var(--surface); border:1px solid var(--border); border-radius:12px;
-  gap:1rem;
-}
-.setting-row.sub { margin-left:.8rem; width:calc(100% - .8rem); max-width:calc(360px - .8rem); opacity:.7; }
-.setting-label { font-size:.72rem; color:var(--text); line-height:1.5; }
-.setting-desc { font-size:.6rem; color:var(--muted); margin-top:.15rem; }
-
-/* toggle switch */
-.toggle { position:relative; width:40px; height:22px; flex-shrink:0; }
-.toggle input { opacity:0; width:0; height:0; }
-.toggle-track {
-  position:absolute; inset:0; border-radius:11px;
-  background:var(--border); cursor:pointer;
-  transition:background .2s;
-}
-.toggle input:checked + .toggle-track { background:var(--accent); }
-.toggle-thumb {
-  position:absolute; top:3px; left:3px;
-  width:16px; height:16px; border-radius:50%;
-  background:#fff; transition:transform .2s;
-  pointer-events:none;
-}
-.toggle input:checked ~ .toggle-thumb { transform:translateX(18px); }
-
-select.setting-select {
-  background:var(--bg); color:var(--text);
-  border:1px solid var(--border); border-radius:7px;
-  padding:.35rem .5rem;
-  font-family:'Geist Mono',monospace; font-size:.68rem;
-  outline:none; cursor:pointer;
-}
-
-#close-settings {
-  width:100%; max-width:360px; padding:.85rem;
-  background:none; border:1px solid var(--border); color:var(--muted);
-  font-family:'Geist Mono',monospace; font-size:.72rem;
-  border-radius:12px; cursor:pointer;
-  transition:border-color .2s, color .2s;
-}
-#close-settings:hover { border-color:var(--accent); color:var(--accent); }
-
-/* ── TELEPROMPTER SCREEN (full-screen, default) ─── */
-#prompter {
-  display:none;
-  height:100vh; height:100dvh;
-  width:100%; position:relative;
-  overflow:hidden; background:var(--bg);
-}
-
-/* full-screen text band */
-#text-band {
-  position:absolute; inset:0;
-  overflow:hidden;
-}
-
-/* soft fades top/bottom */
-#text-band::before,
-#text-band::after {
-  content:''; position:absolute; left:0; right:0; height:120px; z-index:2; pointer-events:none;
-}
-#text-band::before { top:0; background:linear-gradient(to bottom, var(--bg) 0%, transparent 100%); }
-#text-band::after  { bottom:0; background:linear-gradient(to top, var(--bg) 0%, transparent 100%); }
-
-#scroll-inner { position:absolute; width:100%; padding:50vh 2rem; will-change:transform; }
-#scroll-text {
-  font-family:'Instrument Serif', serif;
-  font-size:clamp(1.4rem, 6vw, 2rem);
-  font-weight:400;
-  line-height:1.65;
-  color:var(--text);
-  text-align:center;
-}
-
-/* reading line */
-#cursor-line {
-  position:absolute; left:8%; right:8%; top:50%; transform:translateY(-50%);
-  height:1.5px; background:var(--accent);
-  box-shadow:0 0 16px var(--accent-dim);
-  opacity:.55; z-index:3; pointer-events:none;
-}
-
-/* word highlight: the word nearest the cursor glows */
-#scroll-text .active-word { color:var(--accent); transition:color .1s; }
-
-/* HUD controls */
-#hud-bar {
-  position:absolute; bottom:0; left:0; right:0; z-index:10;
-  padding:1.2rem 1.5rem 2rem;
-  display:flex; align-items:center; justify-content:space-between;
-  background:linear-gradient(to top, rgba(12,12,12,.9) 0%, transparent 100%);
-}
-
-.hud-btn {
-  background:rgba(20,20,20,.7); border:1px solid var(--border);
-  color:var(--muted); border-radius:8px; padding:.45rem .7rem;
-  font-family:'Geist Mono',monospace; font-size:.62rem; cursor:pointer;
-  backdrop-filter:blur(4px);
-  transition:border-color .15s, color .15s;
-}
-.hud-btn:active { border-color:var(--accent); color:var(--accent); }
-
-.speed-box {
-  display:flex; align-items:center; gap:.5rem;
-  background:rgba(20,20,20,.7); border:1px solid var(--border);
-  border-radius:8px; padding:.4rem .7rem;
-  font-size:.62rem; color:var(--muted);
-  backdrop-filter:blur(4px);
-}
-.spd { background:none; border:none; color:var(--accent); font-family:'Geist Mono',monospace; font-size:.85rem; cursor:pointer; padding:0 3px; }
-#live-spd { color:var(--text); }
-
-#pause-btn { font-size:.85rem; }
-
-/* ── CAM STRIP (PrompterCam mode) ────────────────── */
-/* When promptercam is active, shrink text to top 25%
-   and show camera in bottom 75% */
-#prompter.cam-mode #text-band {
-  bottom:75%; /* occupies top 25% */
-}
-#prompter.cam-mode #scroll-inner {
-  padding:2rem 1.5rem; /* tighter padding in compact mode */
-}
-#prompter.cam-mode #scroll-text {
-  font-size:clamp(.9rem, 3.8vw, 1.2rem);
-  line-height:1.65;
-}
-#prompter.cam-mode #cursor-line {
-  top:50%; left:4%; right:4%;
-}
-#prompter.cam-mode #text-band::before,
-#prompter.cam-mode #text-band::after { height:28px; }
-
-#cam-section {
-  display:none;
-  position:absolute; bottom:0; left:0; right:0; height:75%;
-  overflow:hidden; background:#000;
-}
-#prompter.cam-mode #cam-section { display:block; }
-
-#divider-line {
-  display:none;
-  position:absolute; left:0; right:0; top:25%;
-  height:1.5px; z-index:5;
-  background:linear-gradient(90deg, transparent, var(--accent), transparent);
-  box-shadow:0 0 8px var(--accent-dim);
-}
-#prompter.cam-mode #divider-line { display:block; }
-
-#video-el { width:100%; height:100%; object-fit:cover; transform:scaleX(-1); display:block; }
-
-/* vol meter */
-#vol-meter {
-  position:absolute; left:0; top:25%; bottom:0;
-  width:4px; z-index:10;
-  background:rgba(255,255,255,.05);
-  display:flex; align-items:flex-end;
-}
-#vol-bar {
-  width:100%; height:0%;
-  background:var(--accent);
-  border-radius:0 2px 2px 0;
-  transition:height .05s ease-out;
-  box-shadow:0 0 6px var(--accent-dim);
-}
-
-/* rec button */
-#rec-btn {
-  position:absolute; bottom:1.4rem; left:50%; transform:translateX(-50%);
-  width:62px; height:62px; border-radius:50%; border:2.5px solid #fff;
-  background:transparent; display:flex; align-items:center; justify-content:center;
-  cursor:pointer; z-index:20;
-}
-#rec-inner { width:38px; height:38px; border-radius:50%; background:var(--danger); transition:border-radius .2s, width .2s, height .2s; }
-#rec-btn.rec #rec-inner { border-radius:6px; width:24px; height:24px; }
-
-#rec-ind {
-  position:absolute; top:25%; margin-top:.7rem; left:.9rem;
-  display:flex; align-items:center; gap:.4rem;
-  font-size:.62rem; color:#fff; opacity:0; z-index:15;
-  transition:opacity .3s;
-}
-#rec-ind.on { opacity:1; }
-.dot { width:7px; height:7px; border-radius:50%; background:var(--danger); animation:blink 1s infinite; }
-@keyframes blink { 0%,100%{opacity:1}50%{opacity:.1} }
-#rec-timer { position:absolute; top:25%; margin-top:.7rem; right:.9rem; font-size:.62rem; color:#fff; z-index:15; }
-
-/* active mic label */
-#mic-active-lbl {
-  position:absolute; bottom:4rem; left:50%; transform:translateX(-50%);
-  font-size:.52rem; color:var(--accent); background:rgba(0,0,0,.55);
-  border:1px solid var(--border); border-radius:6px;
-  padding:.25rem .6rem; white-space:nowrap; z-index:20;
-  display:none;
-}
-#prompter.cam-mode #mic-active-lbl { display:block; }
-
-/* ── SAVE SCREEN ─────────────────────────────────── */
-#save-screen {
-  display:none;
-  position:fixed; inset:0; z-index:99999;
-  background:var(--bg);
-  flex-direction:column; align-items:center; justify-content:center;
-  padding:2.5rem 1.8rem; gap:1.4rem;
-}
-#save-screen.on { display:flex; }
-#save-title { font-family:'Instrument Serif',serif; font-size:1.4rem; color:var(--accent); text-align:center; }
-#save-status { font-size:.72rem; color:var(--muted); text-align:center; }
-#save-preview { width:100%; max-width:420px; border-radius:12px; background:#111; max-height:32vh; object-fit:cover; display:none; }
-#save-instructions { font-size:.72rem; color:var(--muted); text-align:center; line-height:1.6; max-width:320px; display:none; }
-#save-dl-btn {
-  display:none; width:100%; max-width:420px;
-  padding:1.1rem; background:var(--accent); color:#0c0c0c;
-  font-family:'Geist Mono',monospace; font-size:.9rem; font-weight:600;
-  letter-spacing:.08em; text-align:center; text-decoration:none;
-  border-radius:14px; border:none; cursor:pointer;
-}
-#save-ios-btn {
-  display:none; width:100%; max-width:420px; padding:1rem;
-  background:var(--accent); color:#0c0c0c;
-  font-family:'Geist Mono',monospace; font-size:.9rem; font-weight:600;
-  letter-spacing:.08em; text-align:center;
-  border-radius:14px; border:none; cursor:pointer;
-}
-#save-new-btn {
-  display:none; width:100%; max-width:420px; padding:.8rem;
-  background:none; border:1px solid var(--border); color:var(--muted);
-  font-family:'Geist Mono',monospace; font-size:.72rem; border-radius:12px; cursor:pointer;
-}
-
-/* ── MIC OVERLAY ─────────────────────────────────── */
-#mic-overlay {
-  display:none;
-  position:fixed; inset:0; z-index:9998;
-  background:rgba(12,12,12,.95);
-  flex-direction:column; align-items:center; justify-content:flex-start;
-  padding:2.5rem 1.8rem 2rem; gap:1rem;
-  overflow-y:auto; -webkit-overflow-scrolling:touch; touch-action:pan-y;
-}
-#mic-overlay.open { display:flex; }
-.dev-ov-title {
-  font-size:.58rem; text-transform:uppercase; letter-spacing:.15em;
-  color:var(--muted); width:100%; max-width:360px;
-}
-.dev-ov-active {
-  width:100%; max-width:360px; padding:.6rem .9rem;
-  background:var(--surface); border:1px solid var(--accent);
-  border-radius:10px; font-size:.78rem; color:var(--text);
-}
-.dev-ov-select {
-  width:100%; max-width:360px;
-  background:var(--surface); color:var(--text);
-  border:1px solid var(--border); border-radius:10px;
-  padding:.7rem .9rem;
-  font-family:'Geist Mono',monospace; font-size:.78rem; outline:none;
-}
-.dev-ov-divider {
-  width:100%; max-width:360px; height:1px;
-  background:var(--border); margin:.3rem 0;
-}
-#mic-ov-restart {
-  width:100%; max-width:360px; padding:1rem;
-  background:var(--accent); color:#0c0c0c;
-  font-family:'Geist Mono',monospace; font-size:.82rem; font-weight:600;
-  letter-spacing:.08em; border:none; border-radius:12px; cursor:pointer;
-  margin-top:.4rem;
-}
-#mic-ov-ok {
-  width:100%; max-width:360px; padding:.8rem;
-  background:none; border:1px solid var(--border); color:var(--muted);
-  font-family:'Geist Mono',monospace; font-size:.72rem; border-radius:12px; cursor:pointer;
-}
+/* ── CARVE MODE ── */
+.carve-overlay{position:fixed;inset:0;background:#0d0d18;z-index:300;display:none;flex-direction:column}
+.carve-overlay.show{display:flex}
+.carve-topbar{display:flex;align-items:center;justify-content:space-between;padding:6px 10px;background:#18182a;border-bottom:1px solid #28284a;flex-shrink:0;min-height:48px;z-index:310}
+.carve-topbar h2{font-size:13px;font-weight:700;color:#7b7bbb;letter-spacing:1.5px;text-transform:uppercase}
+.carve-dims{display:flex;align-items:center;gap:6px;font-size:12px;color:#8888aa}
+.carve-dims .num-input{width:42px;min-height:36px}
+.carve-canvas-wrap{flex:1;overflow:hidden;position:relative;min-height:0;touch-action:none;cursor:crosshair}
+#carveCanvas{image-rendering:pixelated;position:absolute;left:0;top:0;transform-origin:0 0}
+.carve-selection{position:absolute;border:2px solid #ffcc00;background:rgba(255,204,0,.08);pointer-events:none;z-index:5;box-shadow:0 0 0 1px rgba(0,0,0,.6),0 0 12px rgba(255,204,0,.25);transition:opacity .15s}
+.carve-selection.pulse{animation:carvePulse .4s ease}
+@keyframes carvePulse{0%{background:rgba(255,204,0,.08)}50%{background:rgba(100,255,100,.25);border-color:#66ff66}100%{background:rgba(255,204,0,.08);border-color:#ffcc00}}
+.carve-grid-line{position:absolute;background:rgba(255,255,255,.06);pointer-events:none;z-index:2}
+.carve-bottombar{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#18182a;border-top:1px solid #28284a;flex-shrink:0;min-height:52px;gap:8px;z-index:310}
+.carve-bottombar .carve-info{font-size:11px;color:#6666aa;flex:1;text-align:center;line-height:1.4}
+.carve-thumb-strip{display:flex;gap:4px;padding:6px 10px 2px;background:#14142a;border-top:1px solid #22224a;flex-shrink:0;overflow-x:auto;-webkit-overflow-scrolling:touch;min-height:0;scrollbar-width:none;z-index:310}
+.carve-thumb-strip::-webkit-scrollbar{display:none}
+.carve-thumb-strip:empty{display:none;padding:0;min-height:0}
+.carve-thumb{width:40px;height:40px;border-radius:5px;border:1px solid #333360;background:#111120;flex-shrink:0;image-rendering:pixelated;object-fit:contain;padding:2px}
+.carve-thumb.latest{border-color:#ffcc00;box-shadow:0 0 6px rgba(255,204,0,.3)}
+.carve-snap-toggle{font-size:11px;display:flex;align-items:center;gap:5px;color:#8888aa;cursor:pointer;padding:4px 8px;border-radius:5px;background:#222240;border:1px solid #333360}
+.carve-snap-toggle.on{color:#bbddff;border-color:#5577aa;background:#2a3a50}
+.carve-snap-toggle input{display:none}
+.carve-crosshair-h,.carve-crosshair-v{position:absolute;pointer-events:none;z-index:3}
+.carve-crosshair-h{height:1px;left:0;right:0;background:rgba(255,204,0,.15)}
+.carve-crosshair-v{width:1px;top:0;bottom:0;background:rgba(255,204,0,.15)}
+.carve-coord{position:absolute;top:6px;left:50%;transform:translateX(-50%);background:rgba(30,30,60,.85);color:#aaaadd;font-size:10px;padding:3px 8px;border-radius:4px;z-index:6;pointer-events:none;font-variant-numeric:tabular-nums;letter-spacing:.5px;white-space:nowrap}
 </style>
+
 </head>
 <body>
 
-<!-- ══ SETUP ══════════════════════════════════════════ -->
-<div id="setup">
-  <button id="settings-btn" title="Settings">⚙</button>
-
-  <div class="wordmark">Prompter<em>Cam</em></div>
-
-  <div class="upload-zone" id="drop-zone">
-    <input type="file" id="file-input" accept=".txt,.md">
-    <div class="upload-icon">📄</div>
-    <div class="upload-label">
-      <strong>Upload your script</strong>
-      tap to choose a .txt file
-    </div>
-    <div id="file-name"></div>
+<div class="topbar">
+  <div class="topbar-group">
+    <button class="btn" id="btnTools" aria-label="Tools"><svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 013 3L7 19l-4 1 1-4z"/></svg></button>
+    <button class="btn" id="btnSettings" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg></button>
   </div>
-
-  <div class="controls">
-    <div class="ctrl-row">
-      <div class="ctrl-lbl">Speed</div>
-      <input type="range" id="speed-sl" min="0.5" max="10" value="0.5" step="0.5">
-      <div class="ctrl-val" id="speed-v">0.5</div>
-    </div>
-    <div class="ctrl-row">
-      <div class="ctrl-lbl">Size</div>
-      <input type="range" id="size-sl" min="14" max="40" value="22" step="1">
-      <div class="ctrl-val" id="size-v">22</div>
-    </div>
-  </div>
-
-  <button id="start-btn">Start</button>
-</div>
-
-<!-- ══ SETTINGS PANEL ═════════════════════════════════ -->
-<div id="settings-panel">
-  <div class="settings-title">Settings</div>
-
-  <div class="setting-row">
-    <div>
-      <div class="setting-label">PrompterCam Mode</div>
-      <div class="setting-desc">Show camera + record video while prompting</div>
-    </div>
-    <label class="toggle">
-      <input type="checkbox" id="cam-toggle">
-      <div class="toggle-track"></div>
-      <div class="toggle-thumb"></div>
-    </label>
-  </div>
-
-  <div class="setting-row sub" id="fps-row" style="display:none;">
-    <div class="setting-label">Frame rate</div>
-    <select id="fps-sl" class="setting-select">
-      <option value="24" selected>24 fps</option>
-      <option value="30">30 fps</option>
-      <option value="60">60 fps</option>
-    </select>
-  </div>
-
-  <button id="close-settings">Done</button>
-</div>
-
-<!-- ══ PROMPTER SCREEN ════════════════════════════════ -->
-<div id="prompter">
-  <div id="divider-line"></div>
-
-  <!-- text band (full screen in default, top 25% in cam mode) -->
-  <div id="text-band">
-    <div id="cursor-line"></div>
-    <div id="scroll-inner"><div id="scroll-text"></div></div>
-  </div>
-
-  <!-- camera section (hidden unless cam-mode) -->
-  <div id="cam-section">
-    <video id="video-el" autoplay playsinline muted></video>
-    <div id="vol-meter"><div id="vol-bar"></div></div>
-    <div id="rec-ind"><div class="dot"></div>REC</div>
-    <div id="rec-timer">00:00</div>
-    <div id="mic-active-lbl">🎙 detecting…</div>
-    <button id="rec-btn"><div id="rec-inner"></div></button>
-  </div>
-
-  <!-- HUD at bottom (teleprompter controls) -->
-  <div id="hud-bar">
-    <button class="hud-btn" id="back-btn">← Back</button>
-    <div class="speed-box">
-      <button class="spd" id="sl-btn">−</button>
-      <span id="live-spd">0.5</span>×
-      <button class="spd" id="fa-btn">+</button>
-    </div>
-    <button class="hud-btn" id="pause-btn">⏸</button>
+  <h1>Spritebox</h1>
+  <div class="topbar-group">
+    <button class="btn" id="btnSave" aria-label="Save"><svg viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
+    <button class="btn" id="btnLoad" aria-label="Load"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg></button>
   </div>
 </div>
 
-<!-- ══ DEVICE OVERLAY (camera + mic selection) ════════ -->
-<div id="mic-overlay">
-  <div style="font-family:'Instrument Serif',serif;font-size:1.2rem;color:var(--text);width:100%;max-width:360px;">Select Devices</div>
+<!-- Tools drawer -->
 
-  <div class="dev-ov-title">📷 Active Camera</div>
-  <div id="cam-ov-active" class="dev-ov-active">detecting…</div>
-  <div class="dev-ov-title">Switch camera:</div>
-  <select id="cam-ov-select" class="dev-ov-select">
-    <option value="">Auto (front camera)</option>
-  </select>
+<div class="drawer" id="toolsDrawer"><div class="drawer-inner">
+  <button class="btn tool-btn" data-tool="line"><svg viewBox="0 0 24 24" width="14" height="14"><line x1="5" y1="19" x2="19" y2="5"/></svg>Line</button>
+  <button class="btn tool-btn" data-tool="rect"><svg viewBox="0 0 24 24" width="14" height="14"><rect x="4" y="4" width="16" height="16" rx="1"/></svg>Rect</button>
+  <button class="btn tool-btn" data-tool="fill"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M12 2v6m0 0l-3-3m3 3l3-3M2 12h6m0 0L5 9m3 3L5 15M22 12h-6m0 0l3-3m-3 3l3 3M12 22v-6m0 0l3 3m-3-3l-3 3"/></svg>Fill</button>
+  <button class="btn tool-btn" data-tool="eraser"><svg viewBox="0 0 24 24" width="14" height="14"><path d="M20 20H7L3 16l9-9 8 8-4 4z"/></svg>Eraser</button>
+</div></div>
 
-  <div class="dev-ov-divider"></div>
+<!-- Settings drawer -->
 
-  <div class="dev-ov-title">🎙 Active Microphone</div>
-  <div id="mic-ov-active" class="dev-ov-active">detecting…</div>
-  <div class="dev-ov-title">Switch mic:</div>
-  <select id="mic-ov-select" class="dev-ov-select">
-    <option value="">Auto (default)</option>
-  </select>
+<div class="drawer" id="settingsDrawer"><div class="drawer-inner">
+  <div class="drawer-label">View</div>
+  <div class="drawer-row">
+    <button class="btn sm" id="tZoom">Zoom/Pan</button>
+    <button class="btn sm" id="tDrawZ">Draw+Zoom</button>
+    <button class="btn sm" id="tOnion">Onion</button>
+  </div>
+  <div class="drawer-label">Gestures</div>
+  <div class="drawer-row">
+    <button class="btn sm on" id="tPinch">Pinch Zoom</button>
+    <button class="btn sm on" id="tGestUndo">2F Undo</button>
+  </div>
+  <div class="drawer-label">Sprite Size</div>
+  <div class="drawer-row">
+    <span style="font-size:12px;color:#8888aa">W</span><input class="num-input" id="inW" type="number" min="1" max="100" value="16">
+    <span style="font-size:12px;color:#8888aa">H</span><input class="num-input" id="inH" type="number" min="1" max="100" value="24">
+    <button class="btn sm" id="btnResize">Apply</button>
+  </div>
+  <div class="drawer-label">Palette File</div>
+  <div class="drawer-row">
+    <button class="btn sm" id="btnPalImp">Import</button>
+    <button class="btn sm" id="btnPalExp">Export</button>
+  </div>
+</div></div>
 
-  <button id="mic-ov-restart">Restart with selected devices</button>
-  <button id="mic-ov-ok">Looks good — continue</button>
+<!-- Canvas -->
+
+<div class="canvas-wrap" id="canvasWrap">
+  <canvas id="onionPrev" class="onion-layer"></canvas>
+  <canvas id="onionNext" class="onion-layer"></canvas>
+  <canvas id="spriteCanvas"></canvas>
 </div>
 
-<!-- ══ SAVE SCREEN ════════════════════════════════════ -->
-<div id="save-screen">
-  <div id="save-title">Recording done</div>
-  <div id="save-status">Processing…</div>
-  <video id="save-preview" controls playsinline webkit-playsinline style="display:none"></video>
-  <div id="save-instructions"></div>
-  <a id="save-dl-btn" href="#">⬇ Download Video</a>
-  <button id="save-ios-btn">▶ Open Video to Save</button>
-  <button id="save-new-btn">Discard &amp; record again</button>
+<!-- Tabs -->
+
+<div class="tabbar" id="tabbar"></div>
+
+<!-- Palette -->
+
+<div class="palette-area" id="paletteArea">
+  <div class="pal-info"><div class="pal-info-swatch" id="palPreview"></div><span class="pal-info-label" id="palLabel">Transparent</span></div>
+  <div class="palette-grid" id="palGrid"></div>
 </div>
+
+<!-- Animation bar -->
+
+<div class="anim-bar" id="animBar">
+  <div class="fps-row">
+    <span class="fps-label">FPS: <span id="fpsVal">8</span></span>
+    <input type="range" id="fpsSlider" min="1" max="30" value="8">
+  </div>
+  <button class="btn" id="btnPlay">▶ Play</button>
+</div>
+
+<!-- Color picker overlay -->
+
+<div class="overlay" id="pickerOverlay">
+  <div class="panel">
+    <h3>SNES Color</h3>
+    <div class="panel-row">R <input type="range" id="pR" min="0" max="31" value="0"> <span class="rv" id="pRv">0</span></div>
+    <div class="panel-row">G <input type="range" id="pG" min="0" max="31" value="0"> <span class="rv" id="pGv">0</span></div>
+    <div class="panel-row">B <input type="range" id="pB" min="0" max="31" value="0"> <span class="rv" id="pBv">0</span></div>
+    <div class="panel-preview" id="pPrev"></div>
+    <div class="panel-actions">
+      <button class="btn" id="pCancel">Cancel</button>
+      <button class="btn btn-ok" id="pOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Save overlay -->
+
+<div class="overlay" id="saveOverlay">
+  <div class="panel">
+    <h3>Save / Export</h3>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px">
+      <button class="btn" id="btnExpPNG" style="width:100%;justify-content:center">Export PNG Sprite Sheet</button>
+      <button class="btn" id="btnSaveJSON" style="width:100%;justify-content:center">Save JSON</button>
+      <button class="btn" id="btnImportSprite" style="width:100%;justify-content:center;border-color:#6666aa">Import Sprite Image</button>
+      <button class="btn" id="btnCarveSheet" style="width:100%;justify-content:center;border-color:#ffcc00;color:#ffdd88;background:#2a2a10">✂ Carve from Sheet</button>
+      <button class="btn" id="btnCloseSave" style="width:100%;justify-content:center;opacity:.7">Close</button>
+    </div>
+  </div>
+</div>
+
+<!-- Import sprite bar -->
+
+<div class="import-bar" id="importBar">
+  <button class="btn btn-danger" id="importCancel">✕ Cancel</button>
+  <button class="btn btn-ok" id="importConfirm">✓ Stamp</button>
+</div>
+<div class="import-hint" id="importHint">Pinch to resize · Drag to position<br>Tap ✓ to stamp into grid</div>
+
+<!-- Confirm dialog -->
+
+<div class="overlay" id="confirmOverlay">
+  <div class="panel" style="text-align:center">
+    <p id="confirmMsg" style="margin-bottom:16px;font-size:14px"></p>
+    <div class="panel-actions" style="justify-content:center">
+      <button class="btn" id="confirmNo">Cancel</button>
+      <button class="btn btn-danger" id="confirmYes">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- Tab context menu -->
+
+<div class="tab-menu" id="tabMenu">
+  <button class="btn" id="tmDup">Duplicate</button>
+  <button class="btn" id="tmLeft">Move Left</button>
+  <button class="btn" id="tmRight">Move Right</button>
+</div>
+
+<input type="file" class="hidden" id="fJSON" accept=".json">
+<input type="file" class="hidden" id="fPal" accept=".json">
+<input type="file" class="hidden" id="fImg" accept="image/*">
+<input type="file" class="hidden" id="fCarveImg" accept="image/*">
+
+<!-- Carve Mode Overlay -->
+
+<div class="carve-overlay" id="carveOverlay">
+  <div class="carve-topbar">
+    <button class="btn" id="carveClose" aria-label="Close">✕</button>
+    <h2>✂ Carve</h2>
+    <div class="carve-dims">
+      <span>W</span><input class="num-input" id="carveW" type="number" min="1" max="128" value="16">
+      <span>×</span>
+      <span>H</span><input class="num-input" id="carveH" type="number" min="1" max="128" value="24">
+    </div>
+  </div>
+  <div class="carve-coord" id="carveCoord" style="display:none">0, 0</div>
+  <div class="carve-canvas-wrap" id="carveWrap">
+    <canvas id="carveCanvas"></canvas>
+    <div class="carve-selection" id="carveSel"></div>
+    <div class="carve-crosshair-h" id="carveCH" style="display:none"></div>
+    <div class="carve-crosshair-v" id="carveCV" style="display:none"></div>
+  </div>
+  <div class="carve-thumb-strip" id="carveStrip"></div>
+  <div class="carve-bottombar">
+    <label class="carve-snap-toggle on" id="carveSnapLabel"><input type="checkbox" id="carveSnap" checked>⊞ Grid</label>
+    <span class="carve-info">Drag to position · Long press to carve</span>
+    <button class="btn sm btn-ok" id="carveTap" style="font-size:13px;min-width:54px">✂ Carve</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
-// ── Prevent zoom/scroll ──────────────────────────────
-document.addEventListener('touchmove', function(e) {
-  if (!e.target.closest('#save-screen') && !e.target.closest('#mic-overlay'))
-    e.preventDefault();
-}, { passive:false });
-document.addEventListener('gesturestart', function(e) { e.preventDefault(); }, { passive:false });
+// ============================================================
+//  STATE
+// ============================================================
+const S = {
+  w: 16, h: 24,
+  tabs: [],          // {px:[][], undo:[], redo:[]}
+  at: 0,             // active tab
+  pal: [],           // 32, index 0 = null (transparent)
+  ac: 1,             // active color index
+  tool: null,        // null|'line'|'rect'|'fill'|'eraser'
+  zoomPan: false,
+  drawZoomed: false,
+  onion: false,
+  gestPinch: true,
+  gestUndo: true,
+  animMode: false,
+  animPlay: false,
+  animFps: 8,
+  animFrame: 0,
+  animTimer: null,
+  zoom: 1, panX: 0, panY: 0,
+  // transient
+  lineStart: null,
+  preview: null,
+  pickerSlot: -1,
+  confirmCb: null,
+  menuTab: -1,
+};
 
-var isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+// ============================================================
+//  SNES 15-BIT COLOR
+// ============================================================
+const snes = (r,g,b) => `rgb(${r*8},${g*8},${b*8})`;
 
-// ── State ────────────────────────────────────────────
-var scriptText = '', scrollSpeed = 0.5, fontSize = 22;
-var camMode = false, fps = 24, selectedMicId = '', selectedCameraId = '';
-var isScrolling = false, isPaused = false, scrollPos = 0, scrollRAF = null;
-var camStream = null, mediaRecorder = null, recordedChunks = [];
-var isRecording = false, timerInterval = null, elapsed = 0;
-var textTotalH = 0, blobUrl = null;
-var volRAF = null, audioCtx = null;
-
-// ── Settings ─────────────────────────────────────────
-document.getElementById('settings-btn').addEventListener('click', function() {
-  document.getElementById('settings-panel').classList.add('open');
-});
-document.getElementById('close-settings').addEventListener('click', function() {
-  document.getElementById('settings-panel').classList.remove('open');
-});
-document.getElementById('cam-toggle').addEventListener('change', function() {
-  camMode = this.checked;
-  document.getElementById('fps-row').style.display = camMode ? 'flex' : 'none';
-});
-document.getElementById('fps-sl').addEventListener('change', function() {
-  fps = parseInt(this.value);
-});
-
-// ── File upload ───────────────────────────────────────
-document.getElementById('file-input').addEventListener('change', function(e) {
-  loadFile(e.target.files[0]);
-});
-var dz = document.getElementById('drop-zone');
-dz.addEventListener('dragover', function(e) { e.preventDefault(); });
-dz.addEventListener('drop', function(e) { e.preventDefault(); loadFile(e.dataTransfer.files[0]); });
-
-function loadFile(f) {
-  if (!f) return;
-  var r = new FileReader();
-  r.onload = function(ev) {
-    scriptText = ev.target.result.trim();
-    document.getElementById('file-name').textContent = f.name;
-    document.getElementById('file-name').style.display = 'block';
-    document.getElementById('drop-zone').classList.add('has-file');
-    document.getElementById('start-btn').classList.add('ready');
-  };
-  r.readAsText(f);
+function initPalette() {
+  S.pal = [
+    null, snes(0,0,0), snes(31,31,31), snes(16,16,16), snes(8,8,8), snes(24,24,24),
+    snes(31,0,0), snes(20,0,0), snes(31,16,0), snes(31,31,0), snes(16,31,0),
+    snes(0,31,0), snes(0,16,0), snes(0,31,16), snes(0,31,31), snes(0,16,31),
+    snes(0,0,31), snes(0,0,16), snes(16,0,31), snes(31,0,31), snes(31,0,16),
+    snes(24,16,8), snes(16,8,0), snes(31,24,16), snes(24,16,12), snes(16,10,6),
+    snes(12,20,28), snes(20,28,20), snes(28,28,16), snes(28,20,24), snes(20,12,24), snes(8,16,8),
+  ];
 }
 
-// ── Sliders ───────────────────────────────────────────
-document.getElementById('speed-sl').addEventListener('input', function() {
-  scrollSpeed = parseFloat(this.value);
-  document.getElementById('speed-v').textContent = scrollSpeed;
-  document.getElementById('live-spd').textContent = scrollSpeed;
-});
-document.getElementById('size-sl').addEventListener('input', function() {
-  fontSize = parseInt(this.value);
-  document.getElementById('size-v').textContent = fontSize;
-});
+// ============================================================
+//  PIXEL / TAB HELPERS
+// ============================================================
+const mkPx = (w,h) => Array.from({length:h}, ()=> new Array(w).fill(0));
+const clonePx = px => px.map(r=>[...r]);
+const mkTab = px => ({px: px||mkPx(S.w,S.h), undo:[], redo:[]});
 
-// ── Start ─────────────────────────────────────────────
-document.getElementById('start-btn').addEventListener('click', function() {
-  if (scriptText) launchSession();
-});
+function saveUndo(){
+  const t=S.tabs[S.at]; t.undo.push(clonePx(t.px));
+  if(t.undo.length>10) t.undo.shift(); t.redo=[];
+}
+function undo(){
+  const t=S.tabs[S.at]; if(!t.undo.length) return;
+  t.redo.push(clonePx(t.px)); if(t.redo.length>10) t.redo.shift();
+  t.px=t.undo.pop(); render();
+}
+function redo(){
+  const t=S.tabs[S.at]; if(!t.redo.length) return;
+  t.undo.push(clonePx(t.px)); if(t.undo.length>10) t.undo.shift();
+  t.px=t.redo.pop(); render();
+}
 
-function launchSession() {
-  if (camMode) {
-    var videoConstraint = selectedCameraId
-      ? { deviceId:{exact:selectedCameraId}, width:{ideal:1920}, height:{ideal:1080}, frameRate:{min:fps,ideal:fps} }
-      : { facingMode:{ideal:'user'}, width:{ideal:1920}, height:{ideal:1080}, frameRate:{min:fps,ideal:fps} };
+// ============================================================
+//  CANVAS RENDERING
+// ============================================================
+const cvs = document.getElementById('spriteCanvas');
+const cx = cvs.getContext('2d');
+const wrap = document.getElementById('canvasWrap');
+const oPrev = document.getElementById('onionPrev');
+const oNext = document.getElementById('onionNext');
+const oPrevCx = oPrev.getContext('2d');
+const oNextCx = oNext.getContext('2d');
 
-    navigator.mediaDevices.getUserMedia({
-      video: videoConstraint,
-      audio: selectedMicId ? { deviceId:{exact:selectedMicId} } : true
-    }).then(function(s) {
-      camStream = s;
-      // Enumerate with real labels now permission granted
-      navigator.mediaDevices.enumerateDevices().then(function(devices) {
-        // — Camera dropdown
-        var camSel = document.getElementById('cam-ov-select');
-        camSel.innerHTML = '<option value="">Auto (front camera)</option>';
-        devices.filter(function(d){ return d.kind==='videoinput'; }).forEach(function(d) {
-          var o = document.createElement('option');
-          o.value = d.deviceId;
-          o.textContent = d.label || 'Camera';
-          if (d.deviceId === selectedCameraId) o.selected = true;
-          camSel.appendChild(o);
-        });
-        var vTracks = s.getVideoTracks();
-        document.getElementById('cam-ov-active').textContent =
-          '📷 ' + (vTracks.length ? (vTracks[0].label || 'Camera') : 'Unknown');
+let checkerImg = null;
 
-        // — Mic dropdown
-        var micSel = document.getElementById('mic-ov-select');
-        micSel.innerHTML = '<option value="">Auto (default)</option>';
-        devices.filter(function(d){ return d.kind==='audioinput'; }).forEach(function(d) {
-          var o = document.createElement('option');
-          o.value = d.deviceId;
-          o.textContent = d.label || 'Microphone';
-          if (d.deviceId === selectedMicId) o.selected = true;
-          micSel.appendChild(o);
-        });
-        var aTracks = s.getAudioTracks();
-        var micName = aTracks.length ? (aTracks[0].label || 'Microphone') : 'Unknown';
-        document.getElementById('mic-ov-active').textContent = '🎙 ' + micName;
-        document.getElementById('mic-active-lbl').textContent = '🎙 ' + micName;
+function mkChecker(sz){
+  const c=document.createElement('canvas'); c.width=sz*2; c.height=sz*2;
+  const x=c.getContext('2d');
+  x.fillStyle='#26263a'; x.fillRect(0,0,sz*2,sz*2);
+  x.fillStyle='#1e1e30'; x.fillRect(0,0,sz,sz); x.fillRect(sz,sz,sz,sz);
+  checkerImg=c;
+}
 
-        document.getElementById('mic-overlay').classList.add('open');
-      }).catch(function(){});
+function cellSz(){
+  const r=wrap.getBoundingClientRect();
+  const pad=4;
+  const cw=Math.floor((r.width-pad)/S.w);
+  const ch=Math.floor((r.height-pad)/S.h);
+  return Math.max(1,Math.min(cw,ch));
+}
 
-      document.getElementById('video-el').srcObject = camStream;
-      startVolumeMeter(camStream);
-      showPrompter(true);
-    }).catch(function(err) {
-      alert('Camera & mic required: ' + err.message);
-    });
-  } else {
-    showPrompter(false);
+function resizeCvs(){
+  const c=cellSz(), w=S.w*c, h=S.h*c;
+  [cvs,oPrev,oNext].forEach(el=>{el.width=w;el.height=h;el.style.width=w+'px';el.style.height=h+'px'});
+  mkChecker(Math.max(2,Math.floor(c/2)));
+  applyZoom();
+}
+
+function applyZoom(){
+  const t=`translate(${S.panX}px,${S.panY}px) scale(${S.zoom})`;
+  [cvs,oPrev,oNext].forEach(el=>{el.style.transform=t});
+}
+
+function drawGrid(context,w,h,c){
+  context.clearRect(0,0,w*c,h*c);
+  // checker bg
+  if(checkerImg) context.fillStyle=context.createPattern(checkerImg,'repeat');
+  else context.fillStyle='#1e1e30';
+  context.fillRect(0,0,w*c,h*c);
+}
+
+function drawPixels(context,px,c){
+  const w=S.w,h=S.h;
+  drawGrid(context,w,h,c);
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+    const ci=px[y]?.[x]??0;
+    if(ci===0) continue;
+    const col=S.pal[ci]; if(!col) continue;
+    context.fillStyle=col;
+    context.fillRect(x*c,y*c,c,c);
+  }
+  // grid lines
+  context.strokeStyle='rgba(200,200,255,.06)';
+  context.lineWidth=1;
+  context.beginPath();
+  for(let x=0;x<=w;x++){context.moveTo(x*c+.5,0);context.lineTo(x*c+.5,h*c)}
+  for(let y=0;y<=h;y++){context.moveTo(0,y*c+.5);context.lineTo(w*c,y*c+.5)}
+  context.stroke();
+}
+
+function renderOnion(){
+  oPrevCx.clearRect(0,0,oPrev.width,oPrev.height);
+  oNextCx.clearRect(0,0,oNext.width,oNext.height);
+  if(!S.onion||S.animMode){oPrev.style.display='none';oNext.style.display='none';return}
+  const c=cellSz();
+  const pi=S.at-1,ni=S.at+1;
+  if(pi>=0){oPrev.style.display='block';drawOnionFrame(oPrevCx,S.tabs[pi].px,c)} else oPrev.style.display='none';
+  if(ni<S.tabs.length){oNext.style.display='block';drawOnionFrame(oNextCx,S.tabs[ni].px,c)} else oNext.style.display='none';
+}
+
+function drawOnionFrame(context,px,c){
+  context.clearRect(0,0,S.w*c,S.h*c);
+  for(let y=0;y<S.h;y++) for(let x=0;x<S.w;x++){
+    const ci=px[y]?.[x]??0; if(ci===0) continue;
+    const col=S.pal[ci]; if(!col) continue;
+    context.fillStyle=col;
+    context.fillRect(x*c,y*c,c,c);
   }
 }
 
-function showPrompter(withCam) {
-  document.getElementById('setup').style.display = 'none';
-  var p = document.getElementById('prompter');
-  p.style.display = 'block';
-  if (withCam) p.classList.add('cam-mode');
-  else p.classList.remove('cam-mode');
-
-  var st = document.getElementById('scroll-text');
-  st.style.fontSize = fontSize + 'px';
-  st.textContent = scriptText;
-
-  scrollPos = 0; isPaused = false;
-  var inner = document.getElementById('scroll-inner');
-  // Start text below viewport center so it scrolls UP through the reading line
-  inner.style.transform = 'translateY(0px)';
-  setTimeout(function() {
-    textTotalH = inner.offsetHeight;
-    startScrolling();
-  }, 150);
-  document.getElementById('pause-btn').textContent = '⏸';
+function render(){
+  drawPixels(cx,S.tabs[S.at].px,cellSz());
+  renderOnion();
 }
 
-// ── Scroll ────────────────────────────────────────────
-function startScrolling() {
-  if (scrollRAF) cancelAnimationFrame(scrollRAF);
-  isScrolling = true; isPaused = false;
-  var inner = document.getElementById('scroll-inner');
-  var vh = window.innerHeight;
-  // In cam mode, text fits in top 25%
-  var visibleH = camMode ? vh * 0.25 : vh;
-  var last = null;
-
-  function loop(ts) {
-    if (!isScrolling) return;
-    if (isPaused) { scrollRAF = requestAnimationFrame(loop); return; }
-    if (!last) last = ts;
-    var dt = ts - last; last = ts;
-    scrollPos += (scrollSpeed * 30 / 1000) * dt;
-    inner.style.transform = 'translateY(-' + scrollPos + 'px)';
-    if (scrollPos < textTotalH + visibleH) {
-      scrollRAF = requestAnimationFrame(loop);
+function renderWithPreview(pts){
+  const c=cellSz();
+  drawPixels(cx,S.tabs[S.at].px,c);
+  if(!pts) return;
+  for(const[x,y] of pts){
+    if(x<0||x>=S.w||y<0||y>=S.h) continue;
+    const ci=S.ac;
+    if(ci===0){
+      if(checkerImg) cx.fillStyle=cx.createPattern(checkerImg,'repeat');
+      else cx.fillStyle='#1e1e30';
     } else {
-      isScrolling = false;
+      cx.fillStyle=S.pal[ci]||'#f0f';
+    }
+    cx.fillRect(x*c,y*c,c,c);
+  }
+}
+
+// ============================================================
+//  PALETTE UI
+// ============================================================
+const palGrid=document.getElementById('palGrid');
+const palPreview=document.getElementById('palPreview');
+const palLabel=document.getElementById('palLabel');
+
+function renderPal(){
+  palGrid.innerHTML='';
+  S.pal.forEach((col,i)=>{
+    const d=document.createElement('div');
+    d.className='sw'+(i===S.ac?' sel':'')+(i===0?' tr':'');
+    if(i>0&&col) d.style.background=col;
+    // tap = select
+    let lp=null, moved=false;
+    d.addEventListener('touchstart',e=>{
+      moved=false;
+      if(i>0) lp=setTimeout(()=>{lp=null;openPicker(i)},500);
+    },{passive:true});
+    d.addEventListener('touchmove',()=>{moved=true;if(lp){clearTimeout(lp);lp=null}},{passive:true});
+    d.addEventListener('touchend',e=>{
+      if(lp){clearTimeout(lp);lp=null}
+      if(!moved){S.ac=i;renderPal()}
+    },{passive:true});
+    // mouse fallback
+    d.addEventListener('click',()=>{S.ac=i;renderPal()});
+    d.addEventListener('contextmenu',e=>{e.preventDefault();if(i>0)openPicker(i)});
+    palGrid.appendChild(d);
+  });
+  if(S.ac===0){
+    palPreview.style.background='';palPreview.className='pal-info-swatch is-trans';palLabel.textContent='Transparent';
+  }else{
+    palPreview.className='pal-info-swatch';palPreview.style.background=S.pal[S.ac]||'';palLabel.textContent='Color '+S.ac;
+  }
+}
+
+// ============================================================
+//  COLOR PICKER
+// ============================================================
+const pO=document.getElementById('pickerOverlay');
+const pR=document.getElementById('pR'),pG=document.getElementById('pG'),pB=document.getElementById('pB');
+const pRv=document.getElementById('pRv'),pGv=document.getElementById('pGv'),pBv=document.getElementById('pBv');
+const pPrev=document.getElementById('pPrev');
+
+function openPicker(i){
+  S.pickerSlot=i;
+  const c=S.pal[i]; let r=0,g=0,b=0;
+  if(c){const m=c.match(/rgb\((\d+),(\d+),(\d+)\)/);if(m){r=Math.round(+m[1]/8);g=Math.round(+m[2]/8);b=Math.round(+m[3]/8)}}
+  pR.value=r;pG.value=g;pB.value=b;updPicker();pO.classList.add('show');
+}
+function updPicker(){
+  pRv.textContent=pR.value;pGv.textContent=pG.value;pBv.textContent=pB.value;
+  pPrev.style.background=snes(+pR.value,+pG.value,+pB.value);
+}
+pR.oninput=pG.oninput=pB.oninput=updPicker;
+document.getElementById('pCancel').onclick=()=>pO.classList.remove('show');
+document.getElementById('pOk').onclick=()=>{
+  S.pal[S.pickerSlot]=snes(+pR.value,+pG.value,+pB.value);
+  pO.classList.remove('show');renderPal();render();
+};
+
+// ============================================================
+//  TABS UI
+// ============================================================
+const tabbar=document.getElementById('tabbar');
+const tabMenu=document.getElementById('tabMenu');
+
+function renderTabs(){
+  tabbar.innerHTML='';
+  S.tabs.forEach((_,i)=>{
+    const t=document.createElement('button');
+    t.className='tab'+(i===S.at?' active':'');
+    t.textContent=i+1;
+    // close btn on active
+    const xb=document.createElement('span');xb.className='tab-x';xb.textContent='×';
+    xb.addEventListener('pointerdown',e=>{
+      e.stopPropagation();
+      if(S.tabs.length<=1){toast('Need at least 1 frame');return}
+      showConfirm('Delete frame '+(i+1)+'?',()=>{
+        S.tabs.splice(i,1);
+        if(S.at>=S.tabs.length) S.at=S.tabs.length-1;
+        renderTabs();resizeCvs();render();
+      });
+    });
+    t.appendChild(xb);
+    // tap to select
+    t.addEventListener('pointerdown',e=>{
+      if(e.target===xb) return;
+      S.at=i;renderTabs();render();renderOnion();
+    });
+    // long press for context menu
+    let lp=null,moved=false;
+    t.addEventListener('touchstart',e=>{
+      moved=false;
+      lp=setTimeout(()=>{lp=null;showTabMenu(i,e.touches[0])},500);
+    },{passive:true});
+    t.addEventListener('touchmove',()=>{moved=true;if(lp){clearTimeout(lp);lp=null}},{passive:true});
+    t.addEventListener('touchend',()=>{if(lp){clearTimeout(lp);lp=null}},{passive:true});
+    tabbar.appendChild(t);
+  });
+  // add button
+  const add=document.createElement('button');
+  add.className='tab tab-add';add.textContent='+';
+  add.addEventListener('click',()=>{
+    if(S.tabs.length>=64){toast('Max 64 frames');return}
+    S.tabs.push(mkTab());S.at=S.tabs.length-1;
+    renderTabs();resizeCvs();render();
+  });
+  tabbar.appendChild(add);
+}
+
+function showTabMenu(i,touch){
+  S.menuTab=i;
+  tabMenu.style.left=Math.min(touch.clientX,window.innerWidth-160)+'px';
+  tabMenu.style.top=Math.max(0,touch.clientY-120)+'px';
+  tabMenu.classList.add('show');
+}
+function hideTabMenu(){tabMenu.classList.remove('show');S.menuTab=-1}
+
+document.getElementById('tmDup').onclick=()=>{
+  if(S.menuTab<0)return;
+  if(S.tabs.length>=64){toast('Max 64 frames');hideTabMenu();return}
+  const src=S.tabs[S.menuTab];
+  S.tabs.splice(S.menuTab+1,0,mkTab(clonePx(src.px)));
+  S.at=S.menuTab+1;hideTabMenu();renderTabs();render();toast('Duplicated');
+};
+document.getElementById('tmLeft').onclick=()=>{
+  if(S.menuTab<=0){hideTabMenu();return}
+  const i=S.menuTab;
+  [S.tabs[i-1],S.tabs[i]]=[S.tabs[i],S.tabs[i-1]];
+  if(S.at===i) S.at=i-1; else if(S.at===i-1) S.at=i;
+  hideTabMenu();renderTabs();render();
+};
+document.getElementById('tmRight').onclick=()=>{
+  if(S.menuTab<0||S.menuTab>=S.tabs.length-1){hideTabMenu();return}
+  const i=S.menuTab;
+  [S.tabs[i],S.tabs[i+1]]=[S.tabs[i+1],S.tabs[i]];
+  if(S.at===i) S.at=i+1; else if(S.at===i+1) S.at=i;
+  hideTabMenu();renderTabs();render();
+};
+document.addEventListener('pointerdown',e=>{
+  if(!tabMenu.contains(e.target)) hideTabMenu();
+});
+
+// ============================================================
+//  DRAWING
+// ============================================================
+function cellFromTouch(t){
+  const r=cvs.getBoundingClientRect();
+  const c=cellSz()*S.zoom;
+  return {x:Math.floor((t.clientX-r.left)/c), y:Math.floor((t.clientY-r.top)/c)};
+}
+const inB=(x,y)=>x>=0&&x<S.w&&y>=0&&y<S.h;
+
+// Bresenham
+function linePts(x0,y0,x1,y1){
+  const pts=[];const dx=Math.abs(x1-x0),dy=Math.abs(y1-y0),sx=x0<x1?1:-1,sy=y0<y1?1:-1;let e=dx-dy;
+  while(true){pts.push([x0,y0]);if(x0===x1&&y0===y1)break;const e2=2*e;if(e2>-dy){e-=dy;x0+=sx}if(e2<dx){e+=dx;y0+=sy}}
+  return pts;
+}
+function rectPts(x0,y0,x1,y1){
+  const pts=[];const mx=Math.min(x0,x1),Mx=Math.max(x0,x1),my=Math.min(y0,y1),My=Math.max(y0,y1);
+  for(let x=mx;x<=Mx;x++){pts.push([x,my]);if(my!==My)pts.push([x,My])}
+  for(let y=my+1;y<My;y++){pts.push([mx,y]);if(mx!==Mx)pts.push([Mx,y])}
+  return pts;
+}
+function floodFill(sx,sy,nc){
+  const px=S.tabs[S.at].px,tc=px[sy][sx];if(tc===nc)return;
+  const stk=[[sx,sy]],vis=new Set();
+  while(stk.length){const[cx,cy]=stk.pop();const k=cy*S.w+cx;
+    if(vis.has(k)||!inB(cx,cy)||px[cy][cx]!==tc)continue;
+    vis.add(k);px[cy][cx]=nc;
+    stk.push([cx-1,cy],[cx+1,cy],[cx,cy-1],[cx,cy+1]);
+  }
+}
+
+// ============================================================
+//  TOUCH / GESTURE HANDLING
+// ============================================================
+const canDraw=()=>!S.animMode&&!(S.zoomPan&&!S.drawZoomed);
+
+let ts={fingers:0,starts:[],lastDist:0,lastCY:0,gestured:false,drawn:[],undid:false};
+
+cvs.addEventListener('touchstart',e=>{
+  e.preventDefault();
+  if(impState) return; // import mode handles its own touches
+  const tt=e.touches;
+  ts.fingers=tt.length;ts.gestured=false;
+
+  // 1-finger: pan or draw
+  if(tt.length===1){
+    if(S.zoomPan&&!S.drawZoomed){
+      ts.starts=[{x:tt[0].clientX,y:tt[0].clientY}];
+      return;
+    }
+    if(!canDraw()) return;
+    const{x,y}=cellFromTouch(tt[0]);
+    ts.drawn=[];ts.undid=false;
+    if(S.tool==='line'||S.tool==='rect'){
+      S.lineStart={x,y};S.preview=[[x,y]];renderWithPreview(S.preview);
+    }else if(S.tool==='fill'){
+      if(inB(x,y)){saveUndo();floodFill(x,y,S.ac);render()}
+    }else if(S.tool==='eraser'){
+      saveUndo();ts.undid=true;if(inB(x,y))S.tabs[S.at].px[y][x]=0;render();
+    }else{
+      saveUndo();ts.undid=true;
+      if(inB(x,y)){S.tabs[S.at].px[y][x]=S.ac;ts.drawn.push(x+','+y)}
+      render();
     }
   }
-  scrollRAF = requestAnimationFrame(loop);
-}
 
-// ── HUD controls ──────────────────────────────────────
-document.getElementById('sl-btn').addEventListener('click', function() { adjSpeed(-0.5); });
-document.getElementById('fa-btn').addEventListener('click', function() { adjSpeed(0.5); });
-function adjSpeed(d) {
-  scrollSpeed = Math.max(0.5, Math.min(15, scrollSpeed + d));
-  document.getElementById('live-spd').textContent = scrollSpeed.toFixed(1);
-}
-
-document.getElementById('pause-btn').addEventListener('click', function() {
-  isPaused = !isPaused;
-  this.textContent = isPaused ? '▶' : '⏸';
-  if (!isPaused && !isScrolling) startScrolling();
-});
-
-document.getElementById('back-btn').addEventListener('click', function() {
-  stopSession();
-  document.getElementById('prompter').style.display = 'none';
-  document.getElementById('setup').style.display = 'flex';
-});
-
-function stopSession() {
-  if (isRecording) stopRec(false);
-  isScrolling = false; isPaused = false;
-  if (scrollRAF) cancelAnimationFrame(scrollRAF);
-  stopVolumeMeter();
-  if (camStream) { camStream.getTracks().forEach(function(t){t.stop();}); camStream = null; }
-  recordedChunks = [];
-  if (blobUrl) { URL.revokeObjectURL(blobUrl); blobUrl = null; }
-}
-
-// ── Mic overlay ───────────────────────────────────────
-document.getElementById('mic-ov-ok').addEventListener('click', function() {
-  document.getElementById('mic-overlay').classList.remove('open');
-});
-document.getElementById('mic-ov-restart').addEventListener('click', function() {
-  selectedMicId    = document.getElementById('mic-ov-select').value;
-  selectedCameraId = document.getElementById('cam-ov-select').value;
-  document.getElementById('mic-overlay').classList.remove('open');
-  stopSession();
-  document.getElementById('prompter').classList.remove('cam-mode');
-  document.getElementById('prompter').style.display = 'none';
-  launchSession();
-});
-
-// ── Recording ─────────────────────────────────────────
-document.getElementById('rec-btn').addEventListener('click', function() {
-  if (isRecording) stopRec(true); else startRec();
-});
-
-function startRec() {
-  recordedChunks = [];
-  var mimes = ['video/mp4;codecs=h264,aac','video/mp4','video/webm;codecs=vp9,opus','video/webm;codecs=vp8,opus','video/webm'];
-  var mime = '';
-  for (var i=0;i<mimes.length;i++) { try{ if(MediaRecorder.isTypeSupported(mimes[i])){mime=mimes[i];break;} }catch(e){} }
-  try {
-    mediaRecorder = mime
-      ? new MediaRecorder(camStream,{mimeType:mime,videoBitsPerSecond:8000000})
-      : new MediaRecorder(camStream,{videoBitsPerSecond:8000000});
-  } catch(e) { try{mediaRecorder=new MediaRecorder(camStream);}catch(e2){alert('Recording not supported.');return;} }
-
-  mediaRecorder.ondataavailable = function(e){ if(e.data&&e.data.size>0) recordedChunks.push(e.data); };
-  mediaRecorder.onstop = function(){ setTimeout(buildAndShowSave, 1200); };
-  mediaRecorder.start(1000);
-
-  isRecording=true; elapsed=0;
-  document.getElementById('rec-ind').classList.add('on');
-  document.getElementById('rec-btn').classList.add('rec');
-  timerInterval = setInterval(function(){
-    elapsed++;
-    var m=String(Math.floor(elapsed/60)).padStart(2,'0');
-    var s=String(elapsed%60).padStart(2,'0');
-    document.getElementById('rec-timer').textContent=m+':'+s;
-  },1000);
-}
-
-function stopRec(save) {
-  if (!isRecording) return;
-  isRecording=false;
-  clearInterval(timerInterval);
-  document.getElementById('rec-ind').classList.remove('on');
-  document.getElementById('rec-btn').classList.remove('rec');
-  document.getElementById('rec-timer').textContent='00:00';
-  if (!save) { mediaRecorder.onstop=function(){}; }
-  if (mediaRecorder&&mediaRecorder.state!=='inactive') {
-    try{mediaRecorder.requestData();}catch(e){}
-    mediaRecorder.stop();
+  if(tt.length>=2){
+    ts.starts=Array.from(tt).map(t=>({x:t.clientX,y:t.clientY}));
+    if(tt.length===2){
+      const dx=tt[0].clientX-tt[1].clientX,dy=tt[0].clientY-tt[1].clientY;
+      ts.lastDist=Math.hypot(dx,dy);
+      ts.lastCY=(tt[0].clientY+tt[1].clientY)/2;
+    }
   }
-  if (save) {
-    document.getElementById('save-status').textContent='Processing…';
-    document.getElementById('save-status').style.display='block';
-    document.getElementById('save-preview').style.display='none';
-    document.getElementById('save-dl-btn').style.display='none';
-    document.getElementById('save-ios-btn').style.display='none';
-    document.getElementById('save-new-btn').style.display='none';
-    document.getElementById('save-instructions').style.display='none';
-    document.getElementById('save-screen').classList.add('on');
-  }
-}
+},{passive:false});
 
-function buildAndShowSave() {
-  document.getElementById('save-status').style.display='none';
-  if (!recordedChunks.length) {
-    document.getElementById('save-status').textContent='Error: nothing recorded.';
-    document.getElementById('save-status').style.display='block';
-    document.getElementById('save-new-btn').style.display='block';
+cvs.addEventListener('touchmove',e=>{
+  e.preventDefault();
+  if(impState) return;
+  const tt=e.touches;
+
+  // 2-finger gestures
+  if(tt.length===2){
+    const dx=tt[0].clientX-tt[1].clientX,dy=tt[0].clientY-tt[1].clientY;
+    const dist=Math.hypot(dx,dy);
+    const cy=(tt[0].clientY+tt[1].clientY)/2;
+
+    if(!ts.gestured){
+      if(S.gestPinch&&Math.abs(dist-ts.lastDist)>12){ts.gestured=true}
+      const dcy=cy-ts.lastCY;
+      if(S.gestUndo&&Math.abs(dcy)>45){
+        ts.gestured=true;
+        if(dcy<0) undo(); else redo();
+        ts.lastCY=cy;
+        return;
+      }
+    }
+    if(ts.gestured&&S.gestPinch){
+      const sf=dist/ts.lastDist;
+      S.zoom=Math.max(.5,Math.min(8,S.zoom*sf));
+      ts.lastDist=dist;
+      applyZoom();
+    }
     return;
   }
-  if (blobUrl) URL.revokeObjectURL(blobUrl);
-  var mimeType = (recordedChunks[0]&&recordedChunks[0].type) ? recordedChunks[0].type : 'video/mp4';
-  var blob = new Blob(recordedChunks,{type:mimeType});
-  blobUrl = URL.createObjectURL(blob);
-  window._blobUrl = blobUrl;
 
-  var prev = document.getElementById('save-preview');
-  prev.src=blobUrl; prev.style.display='block';
-
-  if (isIOS) {
-    document.getElementById('save-instructions').innerHTML =
-      'Tap <strong style="color:var(--accent)">Open Video</strong> below. In Safari, tap the share ↑ icon → <strong style="color:var(--accent)">Save to Photos</strong>.';
-    document.getElementById('save-instructions').style.display='block';
-    document.getElementById('save-ios-btn').style.display='block';
-  } else {
-    var ext = mimeType.indexOf('mp4')!==-1?'mp4':'webm';
-    var dl = document.getElementById('save-dl-btn');
-    dl.setAttribute('href',blobUrl);
-    dl.setAttribute('download','promptercam_'+Date.now()+'.'+ext);
-    dl.style.display='block';
-  }
-  document.getElementById('save-new-btn').style.display='block';
-  document.getElementById('save-screen').classList.add('on');
-}
-
-document.getElementById('save-ios-btn').addEventListener('click', function() {
-  if (window._blobUrl) window.open(window._blobUrl,'_blank');
-});
-
-document.getElementById('save-new-btn').addEventListener('click', function() {
-  document.getElementById('save-screen').classList.remove('on');
-  var prev=document.getElementById('save-preview');
-  prev.pause(); prev.src=''; prev.style.display='none';
-  document.getElementById('save-dl-btn').style.display='none';
-  document.getElementById('save-ios-btn').style.display='none';
-  document.getElementById('save-instructions').style.display='none';
-  document.getElementById('save-new-btn').style.display='none';
-  if (blobUrl){URL.revokeObjectURL(blobUrl);blobUrl=null;}
-  recordedChunks=[];
-  scrollPos=0;
-  var inner=document.getElementById('scroll-inner');
-  inner.style.transform='translateY(0px)';
-  startScrolling();
-});
-
-// ── Volume meter ──────────────────────────────────────
-function startVolumeMeter(stream) {
-  try {
-    audioCtx = new (window.AudioContext||window.webkitAudioContext)();
-    var src = audioCtx.createMediaStreamSource(stream);
-    var analyser = audioCtx.createAnalyser();
-    analyser.fftSize=512; analyser.smoothingTimeConstant=0.6;
-    src.connect(analyser);
-    var data = new Uint8Array(analyser.frequencyBinCount);
-    var bar = document.getElementById('vol-bar');
-    function tick(){
-      volRAF=requestAnimationFrame(tick);
-      analyser.getByteFrequencyData(data);
-      var sum=0; for(var i=0;i<data.length;i++) sum+=data[i];
-      bar.style.height=Math.min(100,(sum/data.length/80)*100)+'%';
+  // 1-finger pan
+  if(tt.length===1&&S.zoomPan&&!S.drawZoomed){
+    if(ts.starts.length){
+      S.panX+=tt[0].clientX-ts.starts[0].x;
+      S.panY+=tt[0].clientY-ts.starts[0].y;
+      ts.starts[0]={x:tt[0].clientX,y:tt[0].clientY};
+      applyZoom();
     }
-    tick();
-  } catch(e){}
+    return;
+  }
+
+  // 1-finger draw
+  if(tt.length===1&&canDraw()){
+    const{x,y}=cellFromTouch(tt[0]);
+    if(S.tool==='line'&&S.lineStart){
+      S.preview=linePts(S.lineStart.x,S.lineStart.y,x,y);renderWithPreview(S.preview);
+    }else if(S.tool==='rect'&&S.lineStart){
+      S.preview=rectPts(S.lineStart.x,S.lineStart.y,x,y);renderWithPreview(S.preview);
+    }else if(S.tool==='eraser'){
+      if(inB(x,y))S.tabs[S.at].px[y][x]=0;render();
+    }else if(!S.tool){
+      const k=x+','+y;
+      if(!ts.drawn.includes(k)&&inB(x,y)){
+        ts.drawn.push(k);S.tabs[S.at].px[y][x]=S.ac;render();
+      }
+    }
+  }
+},{passive:false});
+
+cvs.addEventListener('touchend',e=>{
+  e.preventDefault();
+  if(impState) return;
+  // finalize line/rect
+  if(ts.fingers===1&&(S.tool==='line'||S.tool==='rect')&&S.lineStart&&S.preview){
+    saveUndo();
+    // apply undo BEFORE setting pixels, but we already saved, so set pixels on current
+    // Wait - saveUndo saves current state, then we modify. That's correct.
+    // But we need to undo the saveUndo and redo it fresh since pixels haven't changed yet for line/rect.
+    // Actually saveUndo pushes current state to undo stack. Then we modify pixels. If user undoes, they get back the pre-modification state. This is correct.
+    for(const[px,py] of S.preview){
+      if(inB(px,py)) S.tabs[S.at].px[py][px]=S.ac;
+    }
+    S.lineStart=null;S.preview=null;render();
+  }
+  if(e.touches.length===0){
+    ts.fingers=0;ts.starts=[];ts.gestured=false;ts.drawn=[];ts.undid=false;
+  }
+},{passive:false});
+
+// 3-finger gesture on body
+let tf3y=0;
+document.body.addEventListener('touchstart',e=>{
+  if(e.touches.length===3){
+    tf3y=(e.touches[0].clientY+e.touches[1].clientY+e.touches[2].clientY)/3;
+  }
+},{passive:true});
+document.body.addEventListener('touchmove',e=>{
+  if(e.touches.length===3){
+    const cy=(e.touches[0].clientY+e.touches[1].clientY+e.touches[2].clientY)/3;
+    const d=cy-tf3y;
+    if(Math.abs(d)>70){
+      if(d>0&&!S.animMode) enterAnim();
+      else if(d<0&&S.animMode) exitAnim();
+      tf3y=cy;
+    }
+  }
+},{passive:true});
+
+// ============================================================
+//  ANIMATION MODE
+// ============================================================
+const animBar=document.getElementById('animBar');
+const paletteArea=document.getElementById('paletteArea');
+const fpsSlider=document.getElementById('fpsSlider');
+const fpsVal=document.getElementById('fpsVal');
+const btnPlay=document.getElementById('btnPlay');
+
+function enterAnim(){
+  if(S.tabs.length<2){toast('Need 2+ frames');return}
+  S.animMode=true;
+  paletteArea.style.display='none';tabbar.style.display='none';
+  document.getElementById('toolsDrawer').classList.remove('open');
+  document.getElementById('settingsDrawer').classList.remove('open');
+  animBar.classList.add('show');
+  S.zoom=1;S.panX=0;S.panY=0;applyZoom();resizeCvs();
+  S.animFrame=0;renderAnimFrame();renderOnion();
+  toast('Animation mode · 3-finger ↑ to exit');
 }
-function stopVolumeMeter(){
-  if(volRAF){cancelAnimationFrame(volRAF);volRAF=null;}
-  if(audioCtx){audioCtx.close();audioCtx=null;}
-  var b=document.getElementById('vol-bar');
-  if(b) b.style.height='0%';
+function exitAnim(){
+  S.animMode=false;stopAnim();
+  animBar.classList.remove('show');paletteArea.style.display='';tabbar.style.display='';
+  S.zoom=1;S.panX=0;S.panY=0;applyZoom();
+  requestAnimationFrame(()=>{resizeCvs();render()});
 }
+function renderAnimFrame(){
+  drawPixels(cx,S.tabs[S.animFrame%S.tabs.length].px,cellSz());
+}
+function startAnim(){
+  S.animPlay=true;btnPlay.textContent='■ Stop';S.animFrame=0;
+  (function tick(){if(!S.animPlay)return;renderAnimFrame();S.animFrame=(S.animFrame+1)%S.tabs.length;S.animTimer=setTimeout(tick,1000/S.animFps)})();
+}
+function stopAnim(){
+  S.animPlay=false;btnPlay.textContent='▶ Play';
+  if(S.animTimer){clearTimeout(S.animTimer);S.animTimer=null}
+}
+btnPlay.onclick=()=>{S.animPlay?stopAnim():startAnim()};
+fpsSlider.oninput=()=>{S.animFps=+fpsSlider.value;fpsVal.textContent=S.animFps};
+
+// double-tap zoom toggle in anim mode
+let lastTap=0;
+cvs.addEventListener('click',()=>{
+  if(!S.animMode) return;
+  const now=Date.now();
+  if(now-lastTap<300){
+    if(S.zoom===1){
+      const r=wrap.getBoundingClientRect();
+      S.zoom=Math.min(r.width/cvs.width,r.height/cvs.height);
+    }else S.zoom=1;
+    S.panX=0;S.panY=0;applyZoom();
+  }
+  lastTap=now;
+});
+
+// ============================================================
+//  DRAWERS & TOGGLES
+// ============================================================
+const toolsD=document.getElementById('toolsDrawer');
+const settingsD=document.getElementById('settingsDrawer');
+
+document.getElementById('btnTools').onclick=()=>{toolsD.classList.toggle('open');settingsD.classList.remove('open');scheduleResize()};
+document.getElementById('btnSettings').onclick=()=>{settingsD.classList.toggle('open');toolsD.classList.remove('open');scheduleResize()};
+
+// Resize canvas after drawer CSS transitions finish
+let resizeTimer=null;
+function scheduleResize(){
+  // Drawer transition is 200ms; resize after it settles
+  if(resizeTimer) clearTimeout(resizeTimer);
+  resizeTimer=setTimeout(()=>{resizeCvs();render();resizeTimer=null},220);
+}
+
+document.querySelectorAll('.tool-btn').forEach(b=>b.onclick=()=>{
+  const t=b.dataset.tool;
+  if(S.tool===t){S.tool=null;b.classList.remove('on')}
+  else{document.querySelectorAll('.tool-btn').forEach(x=>x.classList.remove('on'));S.tool=t;b.classList.add('on')}
+});
+
+function toggle(id,key){
+  document.getElementById(id).onclick=function(){S[key]=!S[key];this.classList.toggle('on',S[key]);
+    if(key==='zoomPan'&&!S[key]){S.zoom=1;S.panX=0;S.panY=0;applyZoom()}
+    if(key==='onion')renderOnion();
+  };
+}
+toggle('tZoom','zoomPan');toggle('tDrawZ','drawZoomed');toggle('tOnion','onion');
+toggle('tPinch','gestPinch');toggle('tGestUndo','gestUndo');
+
+document.getElementById('btnResize').onclick=()=>{
+  const w=Math.max(1,Math.min(100,+document.getElementById('inW').value||16));
+  const h=Math.max(1,Math.min(100,+document.getElementById('inH').value||24));
+  document.getElementById('inW').value=w;document.getElementById('inH').value=h;
+  S.w=w;S.h=h;
+  S.tabs.forEach(tab=>{
+    const np=mkPx(w,h);const oh=tab.px.length,ow=oh?tab.px[0].length:0;
+    for(let y=0;y<Math.min(h,oh);y++) for(let x=0;x<Math.min(w,ow);x++) np[y][x]=tab.px[y][x];
+    tab.px=np;tab.undo=[];tab.redo=[];
+  });
+  S.zoom=1;S.panX=0;S.panY=0;resizeCvs();render();toast(w+'×'+h);
+};
+
+// ============================================================
+//  SAVE / LOAD / EXPORT
+// ============================================================
+const saveOvl=document.getElementById('saveOverlay');
+document.getElementById('btnSave').onclick=()=>saveOvl.classList.add('show');
+document.getElementById('btnCloseSave').onclick=()=>saveOvl.classList.remove('show');
+
+document.getElementById('btnExpPNG').onclick=()=>{
+  const n=S.tabs.length,w=S.w,h=S.h;
+  const sc=document.createElement('canvas');sc.width=w*n;sc.height=h;
+  const sx=sc.getContext('2d');
+  for(let f=0;f<n;f++){
+    const px=S.tabs[f].px;
+    for(let y=0;y<h;y++) for(let x=0;x<w;x++){
+      const ci=px[y][x];if(ci===0)continue;
+      const col=S.pal[ci];if(!col)continue;
+      sx.fillStyle=col;sx.fillRect(f*w+x,y,1,1);
+    }
+  }
+  sc.toBlob(b=>{
+    const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='spritesheet.png';a.click();
+    URL.revokeObjectURL(a.href);saveOvl.classList.remove('show');toast('PNG exported');
+  },'image/png');
+};
+
+document.getElementById('btnSaveJSON').onclick=()=>{
+  const d={w:S.w,h:S.h,pal:S.pal,frames:S.tabs.map(t=>t.px)};
+  const b=new Blob([JSON.stringify(d)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='sprite.json';a.click();
+  URL.revokeObjectURL(a.href);saveOvl.classList.remove('show');toast('JSON saved');
+};
+
+document.getElementById('btnLoad').onclick=()=>document.getElementById('fJSON').click();
+document.getElementById('fJSON').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const d=JSON.parse(ev.target.result);
+      S.w=d.w||16;S.h=d.h||24;S.pal=d.pal||[];
+      S.tabs=d.frames.map(f=>mkTab(f));S.at=0;
+      document.getElementById('inW').value=S.w;document.getElementById('inH').value=S.h;
+      S.zoom=1;S.panX=0;S.panY=0;renderTabs();renderPal();resizeCvs();render();toast('Loaded');
+    }catch(err){toast('Invalid file')}
+  };
+  r.readAsText(f);e.target.value='';
+};
+
+document.getElementById('btnPalExp').onclick=()=>{
+  const b=new Blob([JSON.stringify(S.pal)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='palette.json';a.click();
+  URL.revokeObjectURL(a.href);toast('Palette exported');
+};
+document.getElementById('btnPalImp').onclick=()=>document.getElementById('fPal').click();
+document.getElementById('fPal').onchange=e=>{
+  const f=e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{
+    try{
+      const p=JSON.parse(ev.target.result);
+      if(Array.isArray(p)&&p.length===32){S.pal=p;renderPal();render();toast('Palette loaded')}
+      else toast('Need 32 colors');
+    }catch(err){toast('Invalid file')}
+  };
+  r.readAsText(f);e.target.value='';
+};
+
+// ============================================================
+//  CONFIRM DIALOG
+// ============================================================
+const cOvl=document.getElementById('confirmOverlay');
+function showConfirm(msg,cb){
+  document.getElementById('confirmMsg').textContent=msg;S.confirmCb=cb;cOvl.classList.add('show');
+}
+document.getElementById('confirmYes').onclick=()=>{cOvl.classList.remove('show');if(S.confirmCb)S.confirmCb();S.confirmCb=null};
+document.getElementById('confirmNo').onclick=()=>{cOvl.classList.remove('show');S.confirmCb=null};
+
+// ============================================================
+//  TOAST
+// ============================================================
+function toast(m){
+  const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),1800);
+}
+
+// ============================================================
+//  IMPORT SPRITE MODE
+// ============================================================
+const importBar = document.getElementById('importBar');
+const importHint = document.getElementById('importHint');
+let impState = null; // null when not importing
+
+function parseRgb(s) {
+  if (!s) return null;
+  const m = s.match(/rgb\((\d+),(\d+),(\d+)\)/);
+  return m ? [+m[1], +m[2], +m[3]] : null;
+}
+
+function closestPalIdx(r, g, b, a) {
+  // transparent if alpha low
+  if (a < 80) return 0;
+  let best = 1, bestD = Infinity;
+  for (let i = 1; i < S.pal.length; i++) {
+    const c = parseRgb(S.pal[i]);
+    if (!c) continue;
+    const dr = r - c[0], dg = g - c[1], db = b - c[2];
+    const d = dr * dr + dg * dg + db * db;
+    if (d < bestD) { bestD = d; best = i; }
+  }
+  return best;
+}
+
+document.getElementById('btnImportSprite').onclick = () => {
+  document.getElementById('saveOverlay').classList.remove('show');
+  document.getElementById('fImg').click();
+};
+
+document.getElementById('fImg').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => enterImportMode(img);
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+  e.target.value = '';
+};
+
+function enterImportMode(img) {
+  // reset zoom/pan so coordinate math is clean
+  S.zoom = 1; S.panX = 0; S.panY = 0; applyZoom();
+
+  // create the floating image element inside canvas wrap
+  const el = document.createElement('img');
+  el.src = img.src;
+  el.className = 'import-img';
+  wrap.appendChild(el);
+
+  // calculate initial size: fit image to cover the grid canvas area
+  const cvsRect = cvs.getBoundingClientRect();
+  const imgAspect = img.naturalWidth / img.naturalHeight;
+  const cvsAspect = cvsRect.width / cvsRect.height;
+
+  let initW, initH;
+  if (imgAspect > cvsAspect) {
+    // image wider: fit to canvas height
+    initH = cvsRect.height;
+    initW = initH * imgAspect;
+  } else {
+    // image taller: fit to canvas width
+    initW = cvsRect.width;
+    initH = initW / imgAspect;
+  }
+
+  // position relative to canvas wrap
+  const wrapRect = wrap.getBoundingClientRect();
+  const offsetX = cvsRect.left - wrapRect.left + (cvsRect.width - initW) / 2;
+  const offsetY = cvsRect.top - wrapRect.top + (cvsRect.height - initH) / 2;
+
+  impState = {
+    el,
+    img,
+    x: offsetX,
+    y: offsetY,
+    w: initW,
+    h: initH,
+    // touch tracking
+    startX: 0, startY: 0,
+    startW: 0, startH: 0,
+    startIX: 0, startIY: 0,
+    lastDist: 0,
+    dragging: false,
+    pinching: false,
+  };
+
+  updateImportImg();
+  importBar.classList.add('show');
+  importHint.classList.add('show');
+  document.body.classList.add('import-active');
+
+  // hide hint after a few seconds
+  setTimeout(() => importHint.classList.remove('show'), 3500);
+}
+
+function updateImportImg() {
+  if (!impState) return;
+  const s = impState;
+  s.el.style.left = s.x + 'px';
+  s.el.style.top = s.y + 'px';
+  s.el.style.width = s.w + 'px';
+  s.el.style.height = s.h + 'px';
+}
+
+function exitImportMode() {
+  if (!impState) return;
+  impState.el.remove();
+  impState = null;
+  importBar.classList.remove('show');
+  importHint.classList.remove('show');
+  document.body.classList.remove('import-active');
+}
+
+// Touch handling for import mode on canvas wrap
+wrap.addEventListener('touchstart', e => {
+  if (!impState) return;
+  e.preventDefault();
+  const tt = e.touches;
+  if (tt.length === 1) {
+    impState.dragging = true;
+    impState.pinching = false;
+    impState.startX = tt[0].clientX;
+    impState.startY = tt[0].clientY;
+    impState.startIX = impState.x;
+    impState.startIY = impState.y;
+  }
+  if (tt.length === 2) {
+    impState.dragging = false;
+    impState.pinching = true;
+    const dx = tt[0].clientX - tt[1].clientX;
+    const dy = tt[0].clientY - tt[1].clientY;
+    impState.lastDist = Math.hypot(dx, dy);
+    impState.startW = impState.w;
+    impState.startH = impState.h;
+    // center of pinch for anchoring
+    impState.pinchCX = (tt[0].clientX + tt[1].clientX) / 2;
+    impState.pinchCY = (tt[0].clientY + tt[1].clientY) / 2;
+    impState.startIX = impState.x;
+    impState.startIY = impState.y;
+  }
+}, { passive: false });
+
+wrap.addEventListener('touchmove', e => {
+  if (!impState) return;
+  e.preventDefault();
+  const tt = e.touches;
+
+  if (tt.length === 2 && impState.pinching) {
+    const dx = tt[0].clientX - tt[1].clientX;
+    const dy = tt[0].clientY - tt[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    const scale = dist / impState.lastDist;
+
+    const newW = impState.startW * scale;
+    const newH = impState.startH * scale;
+
+    // anchor around pinch center: adjust position so pinch center stays fixed
+    const wrapRect = wrap.getBoundingClientRect();
+    const pcx = impState.pinchCX - wrapRect.left;
+    const pcy = impState.pinchCY - wrapRect.top;
+
+    // ratio of pinch center within the old image rect
+    const rx = (pcx - impState.startIX) / impState.startW;
+    const ry = (pcy - impState.startIY) / impState.startH;
+
+    impState.w = Math.max(10, newW);
+    impState.h = Math.max(10, newH);
+    impState.x = pcx - rx * impState.w;
+    impState.y = pcy - ry * impState.h;
+
+    updateImportImg();
+    return;
+  }
+
+  if (tt.length === 1 && impState.dragging) {
+    const dx = tt[0].clientX - impState.startX;
+    const dy = tt[0].clientY - impState.startY;
+    impState.x = impState.startIX + dx;
+    impState.y = impState.startIY + dy;
+    updateImportImg();
+  }
+}, { passive: false });
+
+wrap.addEventListener('touchend', e => {
+  if (!impState) return;
+  if (e.touches.length === 0) {
+    impState.dragging = false;
+    impState.pinching = false;
+  }
+  if (e.touches.length === 1) {
+    // went from 2 to 1: restart as drag
+    impState.pinching = false;
+    impState.dragging = true;
+    impState.startX = e.touches[0].clientX;
+    impState.startY = e.touches[0].clientY;
+    impState.startIX = impState.x;
+    impState.startIY = impState.y;
+  }
+}, { passive: true });
+
+// mouse fallback for desktop testing
+wrap.addEventListener('mousedown', e => {
+  if (!impState) return;
+  impState.dragging = true;
+  impState.startX = e.clientX;
+  impState.startY = e.clientY;
+  impState.startIX = impState.x;
+  impState.startIY = impState.y;
+});
+window.addEventListener('mousemove', e => {
+  if (!impState || !impState.dragging) return;
+  impState.x = impState.startIX + (e.clientX - impState.startX);
+  impState.y = impState.startIY + (e.clientY - impState.startY);
+  updateImportImg();
+});
+window.addEventListener('mouseup', () => {
+  if (impState) impState.dragging = false;
+});
+// mouse wheel for desktop pinch emulation
+wrap.addEventListener('wheel', e => {
+  if (!impState) return;
+  e.preventDefault();
+  const scale = e.deltaY < 0 ? 1.08 : 0.92;
+  const wrapRect = wrap.getBoundingClientRect();
+  const mx = e.clientX - wrapRect.left;
+  const my = e.clientY - wrapRect.top;
+  const rx = (mx - impState.x) / impState.w;
+  const ry = (my - impState.y) / impState.h;
+  impState.w = Math.max(10, impState.w * scale);
+  impState.h = Math.max(10, impState.h * scale);
+  impState.x = mx - rx * impState.w;
+  impState.y = my - ry * impState.h;
+  updateImportImg();
+}, { passive: false });
+
+// Confirm: sample image pixels into grid
+document.getElementById('importConfirm').onclick = () => {
+  if (!impState) return;
+  stampImport();
+  exitImportMode();
+  toast('Sprite stamped');
+};
+
+document.getElementById('importCancel').onclick = () => {
+  exitImportMode();
+};
+
+function stampImport() {
+  if (!impState) return;
+
+  saveUndo();
+
+  // Draw import image at its current size to a temp canvas for pixel sampling
+  const tmpCvs = document.createElement('canvas');
+  const tw = Math.round(impState.w);
+  const th = Math.round(impState.h);
+  tmpCvs.width = tw;
+  tmpCvs.height = th;
+  const tmpCx = tmpCvs.getContext('2d');
+  tmpCx.drawImage(impState.img, 0, 0, tw, th);
+
+  // Get all pixel data at once for performance
+  const imgData = tmpCx.getImageData(0, 0, tw, th).data;
+
+  // For each grid cell, find what part of the import image covers it
+  const cvsRect = cvs.getBoundingClientRect();
+  const wrapRect = wrap.getBoundingClientRect();
+  const c = cellSz();
+
+  // canvas position within wrap (accounting for centering)
+  const cvsOffX = cvsRect.left - wrapRect.left;
+  const cvsOffY = cvsRect.top - wrapRect.top;
+
+  // import image position within wrap
+  const imgOffX = impState.x;
+  const imgOffY = impState.y;
+
+  const tab = S.tabs[S.at];
+
+  for (let gy = 0; gy < S.h; gy++) {
+    for (let gx = 0; gx < S.w; gx++) {
+      // center of this grid cell in wrap-relative coords
+      const cellCX = cvsOffX + (gx + 0.5) * c;
+      const cellCY = cvsOffY + (gy + 0.5) * c;
+
+      // map to import image pixel coords
+      const imgPxX = Math.round(((cellCX - imgOffX) / impState.w) * tw);
+      const imgPxY = Math.round(((cellCY - imgOffY) / impState.h) * th);
+
+      // check bounds
+      if (imgPxX < 0 || imgPxX >= tw || imgPxY < 0 || imgPxY >= th) continue;
+
+      // sample pixel from pre-fetched data
+      const idx = (imgPxY * tw + imgPxX) * 4;
+      const palIdx = closestPalIdx(imgData[idx], imgData[idx+1], imgData[idx+2], imgData[idx+3]);
+      tab.px[gy][gx] = palIdx;
+    }
+  }
+  render();
+}
+
+// ============================================================
+//  CARVE FROM SHEET MODE
+// ============================================================
+const carveOverlay = document.getElementById('carveOverlay');
+const carveWrap = document.getElementById('carveWrap');
+const carveCvs = document.getElementById('carveCanvas');
+const carveCx = carveCvs.getContext('2d');
+const carveSel = document.getElementById('carveSel');
+const carveCH = document.getElementById('carveCH');
+const carveCV = document.getElementById('carveCV');
+const carveCoord = document.getElementById('carveCoord');
+const carveStrip = document.getElementById('carveStrip');
+
+let carve = null; // null when not in carve mode
+
+document.getElementById('btnCarveSheet').onclick = () => {
+  document.getElementById('saveOverlay').classList.remove('show');
+  document.getElementById('fCarveImg').click();
+};
+
+document.getElementById('fCarveImg').onchange = e => {
+  const f = e.target.files[0]; if (!f) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    const img = new Image();
+    img.onload = () => enterCarveMode(img);
+    img.src = ev.target.result;
+  };
+  reader.readAsDataURL(f);
+  e.target.value = '';
+};
+
+function enterCarveMode(img) {
+  // Sync carve dimensions with current sprite size
+  document.getElementById('carveW').value = S.w;
+  document.getElementById('carveH').value = S.h;
+
+  const wrapRect = carveWrap.getBoundingClientRect();
+
+  // Calculate zoom to fit image nicely (80% of available space)
+  const fitZoom = Math.min(
+    (wrapRect.width * 0.9) / img.naturalWidth,
+    (wrapRect.height * 0.9) / img.naturalHeight,
+    6 // max initial zoom for tiny sheets
+  );
+
+  const dispW = img.naturalWidth * fitZoom;
+  const dispH = img.naturalHeight * fitZoom;
+
+  carve = {
+    img,
+    zoom: fitZoom,
+    panX: (wrapRect.width - dispW) / 2,
+    panY: (wrapRect.height - dispH) / 2,
+    // selection in IMAGE pixel coordinates
+    selX: 0,
+    selY: 0,
+    // touch state
+    dragging: false,
+    pinching: false,
+    longPressTimer: null,
+    startX: 0, startY: 0,
+    startPanX: 0, startPanY: 0,
+    lastDist: 0,
+    pinchStartZoom: 1,
+    pinchCX: 0, pinchCY: 0,
+    snap: true,
+    moved: false,
+    carved: [], // thumbnail data urls
+  };
+
+  // Draw the sprite sheet onto canvas
+  carveCvs.width = img.naturalWidth;
+  carveCvs.height = img.naturalHeight;
+  renderCarveCanvas();
+
+  carveOverlay.classList.add('show');
+  // Defer layout measurement
+  requestAnimationFrame(() => {
+    if (!carve) return;
+    const wrapRect = carveWrap.getBoundingClientRect();
+    const fitZoom = Math.min(
+      (wrapRect.width * 0.9) / img.naturalWidth,
+      (wrapRect.height * 0.9) / img.naturalHeight,
+      6
+    );
+    const dispW = img.naturalWidth * fitZoom;
+    const dispH = img.naturalHeight * fitZoom;
+    carve.zoom = fitZoom;
+    carve.panX = (wrapRect.width - dispW) / 2;
+    carve.panY = (wrapRect.height - dispH) / 2;
+    updateCarveTransform();
+    updateCarveSelection();
+  });
+}
+
+function renderCarveCanvas() {
+  if (!carve) return;
+  const img = carve.img;
+  carveCx.clearRect(0, 0, carveCvs.width, carveCvs.height);
+  carveCx.drawImage(img, 0, 0);
+
+  // Draw grid overlay when snap is on
+  if (carve.snap) {
+    const cw = getCarveW(), ch = getCarveH();
+    carveCx.strokeStyle = 'rgba(255,255,255,0.12)';
+    carveCx.lineWidth = 0.5;
+    carveCx.beginPath();
+    for (let x = 0; x <= img.naturalWidth; x += cw) {
+      carveCx.moveTo(x, 0);
+      carveCx.lineTo(x, img.naturalHeight);
+    }
+    for (let y = 0; y <= img.naturalHeight; y += ch) {
+      carveCx.moveTo(0, y);
+      carveCx.lineTo(img.naturalWidth, y);
+    }
+    carveCx.stroke();
+  }
+}
+
+function exitCarveMode() {
+  carveOverlay.classList.remove('show');
+  if (carve && carve.longPressTimer) clearTimeout(carve.longPressTimer);
+  carve = null;
+  carveStrip.innerHTML = '';
+}
+
+document.getElementById('carveClose').onclick = exitCarveMode;
+
+function getCarveW() { return Math.max(1, Math.min(128, +document.getElementById('carveW').value || 16)); }
+function getCarveH() { return Math.max(1, Math.min(128, +document.getElementById('carveH').value || 24)); }
+
+// When carve dimensions change, also update the main sprite size
+document.getElementById('carveW').onchange = () => { renderCarveCanvas(); updateCarveSelection(); };
+document.getElementById('carveH').onchange = () => { renderCarveCanvas(); updateCarveSelection(); };
+
+// Snap toggle
+const carveSnapCb = document.getElementById('carveSnap');
+const carveSnapLabel = document.getElementById('carveSnapLabel');
+carveSnapCb.onchange = () => {
+  if (carve) carve.snap = carveSnapCb.checked;
+  carveSnapLabel.classList.toggle('on', carveSnapCb.checked);
+  renderCarveCanvas();
+  updateCarveSelection();
+};
+
+function updateCarveTransform() {
+  if (!carve) return;
+  carveCvs.style.transform = `translate(${carve.panX}px, ${carve.panY}px) scale(${carve.zoom})`;
+}
+
+function updateCarveSelection() {
+  if (!carve) return;
+  const cw = getCarveW(), ch = getCarveH();
+
+  // Compute display position (snap if enabled, clamp to image)
+  let sx = carve.selX, sy = carve.selY;
+  if (carve.snap) {
+    sx = Math.round(sx / cw) * cw;
+    sy = Math.round(sy / ch) * ch;
+  }
+  sx = Math.max(0, Math.min(carve.img.naturalWidth - cw, sx));
+  sy = Math.max(0, Math.min(carve.img.naturalHeight - ch, sy));
+  // NOTE: do NOT write sx/sy back to carve.selX/selY — keep raw coords intact
+
+  // Position the selection rectangle in screen space
+  const screenX = carve.panX + sx * carve.zoom;
+  const screenY = carve.panY + sy * carve.zoom;
+  const screenW = cw * carve.zoom;
+  const screenH = ch * carve.zoom;
+
+  carveSel.style.left = screenX + 'px';
+  carveSel.style.top = screenY + 'px';
+  carveSel.style.width = screenW + 'px';
+  carveSel.style.height = screenH + 'px';
+
+  // Crosshairs
+  carveCH.style.top = (screenY + screenH / 2) + 'px';
+  carveCH.style.display = 'block';
+  carveCV.style.left = (screenX + screenW / 2) + 'px';
+  carveCV.style.display = 'block';
+
+  // Coordinate display
+  carveCoord.style.display = 'block';
+  carveCoord.textContent = `${Math.round(sx)}, ${Math.round(sy)}  ·  ${cw}×${ch}`;
+}
+
+function screenToImageCoords(clientX, clientY) {
+  const wrapRect = carveWrap.getBoundingClientRect();
+  const localX = clientX - wrapRect.left;
+  const localY = clientY - wrapRect.top;
+  const imgX = (localX - carve.panX) / carve.zoom;
+  const imgY = (localY - carve.panY) / carve.zoom;
+  return { imgX, imgY };
+}
+
+function carveSprite() {
+  if (!carve) return;
+  const cw = getCarveW(), ch = getCarveH();
+
+  // Ensure sprite size matches carve dimensions
+  if (S.w !== cw || S.h !== ch) {
+    S.w = cw; S.h = ch;
+    document.getElementById('inW').value = cw;
+    document.getElementById('inH').value = ch;
+    // Resize all existing tabs
+    S.tabs.forEach(tab => {
+      const np = mkPx(cw, ch);
+      const oh = tab.px.length, ow = oh ? tab.px[0].length : 0;
+      for (let y = 0; y < Math.min(ch, oh); y++)
+        for (let x = 0; x < Math.min(cw, ow); x++)
+          np[y][x] = tab.px[y][x];
+      tab.px = np; tab.undo = []; tab.redo = [];
+    });
+  }
+
+  // Compute final coordinates exactly like updateCarveSelection does
+  let sx = carve.selX, sy = carve.selY;
+  if (carve.snap) {
+    sx = Math.round(sx / cw) * cw;
+    sy = Math.round(sy / ch) * ch;
+  }
+  sx = Math.max(0, Math.min(carve.img.naturalWidth - cw, sx));
+  sy = Math.max(0, Math.min(carve.img.naturalHeight - ch, sy));
+  sx = Math.round(sx);
+  sy = Math.round(sy);
+
+  // Get pixel data from the source image at native resolution
+  const tmpCvs = document.createElement('canvas');
+  tmpCvs.width = carve.img.naturalWidth;
+  tmpCvs.height = carve.img.naturalHeight;
+  const tmpCx = tmpCvs.getContext('2d');
+  tmpCx.drawImage(carve.img, 0, 0);
+  const imgData = tmpCx.getImageData(sx, sy, cw, ch).data;
+
+  // Build pixel array
+  const newPx = mkPx(cw, ch);
+  for (let y = 0; y < ch; y++) {
+    for (let x = 0; x < cw; x++) {
+      const idx = (y * cw + x) * 4;
+      const palIdx = closestPalIdx(imgData[idx], imgData[idx+1], imgData[idx+2], imgData[idx+3]);
+      newPx[y][x] = palIdx;
+    }
+  }
+
+  // Check if the first tab is completely empty (all zeros), if so replace it
+  const firstTabEmpty = S.tabs.length === 1 && S.tabs[0].px.every(row => row.every(v => v === 0));
+  if (firstTabEmpty) {
+    S.tabs[0] = mkTab(newPx);
+    S.at = 0;
+  } else {
+    S.tabs.push(mkTab(newPx));
+    S.at = S.tabs.length - 1;
+  }
+
+  // Pulse animation on selection
+  carveSel.classList.remove('pulse');
+  void carveSel.offsetWidth; // force reflow
+  carveSel.classList.add('pulse');
+
+  // Add thumbnail to strip
+  const thumbCvs = document.createElement('canvas');
+  thumbCvs.width = cw; thumbCvs.height = ch;
+  const thumbCx = thumbCvs.getContext('2d');
+  thumbCx.drawImage(carve.img, sx, sy, cw, ch, 0, 0, cw, ch);
+  const thumbImg = document.createElement('img');
+  thumbImg.src = thumbCvs.toDataURL();
+  thumbImg.className = 'carve-thumb latest';
+  // Remove latest class from previous
+  carveStrip.querySelectorAll('.latest').forEach(el => el.classList.remove('latest'));
+  carveStrip.appendChild(thumbImg);
+  // Scroll to end
+  carveStrip.scrollLeft = carveStrip.scrollWidth;
+
+  // Update main editor
+  renderTabs(); resizeCvs(); render();
+  toast('Carved! Frame ' + S.tabs.length);
+}
+
+// Manual carve button
+document.getElementById('carveTap').onclick = () => carveSprite();
+
+// ── CARVE TOUCH HANDLING ──
+carveWrap.addEventListener('touchstart', e => {
+  if (!carve) return;
+  e.preventDefault();
+  const tt = e.touches;
+
+  if (tt.length === 1) {
+    carve.dragging = true;
+    carve.pinching = false;
+    carve.moved = false;
+    carve.startX = tt[0].clientX;
+    carve.startY = tt[0].clientY;
+    carve.startPanX = carve.panX;
+    carve.startPanY = carve.panY;
+
+    // Start long press timer
+    carve.longPressTimer = setTimeout(() => {
+      if (!carve.moved) {
+        // Long press: carve at current position
+        carveSprite();
+        navigator.vibrate && navigator.vibrate(30);
+      }
+      carve.longPressTimer = null;
+    }, 500);
+
+    // Move selection to where finger is
+    const { imgX, imgY } = screenToImageCoords(tt[0].clientX, tt[0].clientY);
+    const cw = getCarveW(), ch = getCarveH();
+    carve.selX = imgX - cw / 2;
+    carve.selY = imgY - ch / 2;
+    updateCarveSelection();
+  }
+
+  if (tt.length === 2) {
+    carve.dragging = false;
+    carve.pinching = true;
+    if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
+    const dx = tt[0].clientX - tt[1].clientX;
+    const dy = tt[0].clientY - tt[1].clientY;
+    carve.lastDist = Math.hypot(dx, dy);
+    carve.pinchStartZoom = carve.zoom;
+    carve.pinchCX = (tt[0].clientX + tt[1].clientX) / 2;
+    carve.pinchCY = (tt[0].clientY + tt[1].clientY) / 2;
+    carve.startPanX = carve.panX;
+    carve.startPanY = carve.panY;
+  }
+}, { passive: false });
+
+carveWrap.addEventListener('touchmove', e => {
+  if (!carve) return;
+  e.preventDefault();
+  const tt = e.touches;
+
+  if (tt.length === 2 && carve.pinching) {
+    const dx = tt[0].clientX - tt[1].clientX;
+    const dy = tt[0].clientY - tt[1].clientY;
+    const dist = Math.hypot(dx, dy);
+    const scale = dist / carve.lastDist;
+    const newZoom = Math.max(0.5, Math.min(20, carve.pinchStartZoom * scale));
+
+    // Zoom toward pinch center
+    const wrapRect = carveWrap.getBoundingClientRect();
+    const pcx = carve.pinchCX - wrapRect.left;
+    const pcy = carve.pinchCY - wrapRect.top;
+
+    const imgX = (pcx - carve.startPanX) / carve.pinchStartZoom;
+    const imgY = (pcy - carve.startPanY) / carve.pinchStartZoom;
+
+    carve.zoom = newZoom;
+    carve.panX = pcx - imgX * newZoom;
+    carve.panY = pcy - imgY * newZoom;
+
+    updateCarveTransform();
+    updateCarveSelection();
+    return;
+  }
+
+  if (tt.length === 1 && carve.dragging) {
+    const dx = tt[0].clientX - carve.startX;
+    const dy = tt[0].clientY - carve.startY;
+
+    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
+      carve.moved = true;
+      if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
+    }
+
+    // Move selection by updating image coords
+    const { imgX, imgY } = screenToImageCoords(tt[0].clientX, tt[0].clientY);
+    const cw = getCarveW(), ch = getCarveH();
+    carve.selX = imgX - cw / 2;
+    carve.selY = imgY - ch / 2;
+    updateCarveSelection();
+  }
+}, { passive: false });
+
+carveWrap.addEventListener('touchend', e => {
+  if (!carve) return;
+  if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
+  if (e.touches.length === 0) {
+    carve.dragging = false;
+    carve.pinching = false;
+  }
+  if (e.touches.length === 1) {
+    carve.pinching = false;
+    carve.dragging = true;
+    carve.startX = e.touches[0].clientX;
+    carve.startY = e.touches[0].clientY;
+    carve.startPanX = carve.panX;
+    carve.startPanY = carve.panY;
+  }
+}, { passive: true });
+
+// ── CARVE MOUSE HANDLING ──
+carveWrap.addEventListener('mousedown', e => {
+  if (!carve) return;
+  carve.dragging = true;
+  carve.moved = false;
+  carve.startX = e.clientX;
+  carve.startY = e.clientY;
+  carve.startPanX = carve.panX;
+  carve.startPanY = carve.panY;
+
+  // Position selection
+  const { imgX, imgY } = screenToImageCoords(e.clientX, e.clientY);
+  const cw = getCarveW(), ch = getCarveH();
+  carve.selX = imgX - cw / 2;
+  carve.selY = imgY - ch / 2;
+  updateCarveSelection();
+
+  // Long press timer
+  carve.longPressTimer = setTimeout(() => {
+    if (!carve.moved) carveSprite();
+    carve.longPressTimer = null;
+  }, 500);
+});
+
+window.addEventListener('mousemove', e => {
+  if (!carve || !carve.dragging) return;
+  const dx = e.clientX - carve.startX;
+  const dy = e.clientY - carve.startY;
+  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+    carve.moved = true;
+    if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
+  }
+  // Move selection
+  const { imgX, imgY } = screenToImageCoords(e.clientX, e.clientY);
+  const cw = getCarveW(), ch = getCarveH();
+  carve.selX = imgX - cw / 2;
+  carve.selY = imgY - ch / 2;
+  updateCarveSelection();
+});
+
+window.addEventListener('mouseup', () => {
+  if (!carve) return;
+  carve.dragging = false;
+  if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
+});
+
+// Mouse wheel zoom
+carveWrap.addEventListener('wheel', e => {
+  if (!carve) return;
+  e.preventDefault();
+  const wrapRect = carveWrap.getBoundingClientRect();
+  const mx = e.clientX - wrapRect.left;
+  const my = e.clientY - wrapRect.top;
+
+  const imgX = (mx - carve.panX) / carve.zoom;
+  const imgY = (my - carve.panY) / carve.zoom;
+
+  const scale = e.deltaY < 0 ? 1.12 : 0.89;
+  carve.zoom = Math.max(0.5, Math.min(20, carve.zoom * scale));
+
+  carve.panX = mx - imgX * carve.zoom;
+  carve.panY = my - imgY * carve.zoom;
+
+  updateCarveTransform();
+  updateCarveSelection();
+}, { passive: false });
+
+// ============================================================
+//  PREVENT OVERSCROLL
+// ============================================================
+document.addEventListener('touchmove',e=>{
+  // allow scrolling inside tabbar and drawers
+  if(e.target.closest('.tabbar')||e.target.closest('.drawer')||e.target.closest('.overlay')||e.target.closest('.anim-bar')||e.target.closest('.tab-menu')||e.target.closest('.import-bar')||e.target.closest('.carve-overlay')) return;
+  e.preventDefault();
+},{passive:false});
+document.addEventListener('gesturestart',e=>e.preventDefault());
+document.addEventListener('gesturechange',e=>e.preventDefault());
+
+// ============================================================
+//  INIT
+// ============================================================
+window.addEventListener('resize',()=>{resizeCvs();render()});
+
+initPalette();
+S.tabs.push(mkTab());
+renderTabs();
+renderPal();
+// Must measure canvas AFTER tabs+palette are rendered so wrap has correct available height
+requestAnimationFrame(()=>{resizeCvs();render()});
 </script>
+
 </body>
 </html>
