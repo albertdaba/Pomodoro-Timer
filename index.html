@@ -296,7 +296,7 @@ body{overflow:hidden;position:fixed;width:100%;height:100%;touch-action:none;ove
   <div class="carve-thumb-strip" id="carveStrip"></div>
   <div class="carve-bottombar">
     <label class="carve-snap-toggle on" id="carveSnapLabel"><input type="checkbox" id="carveSnap" checked>⊞ Grid</label>
-    <span class="carve-info">Drag to position · Long press to carve</span>
+    <span class="carve-info">Drag to aim · Pinch to zoom+pan · Long press to carve</span>
     <button class="btn sm btn-ok" id="carveTap" style="font-size:13px;min-width:54px">✂ Carve</button>
   </div>
 </div>
@@ -1324,64 +1324,32 @@ document.getElementById('fCarveImg').onchange = e => {
 };
 
 function enterCarveMode(img) {
-  // Sync carve dimensions with current sprite size
   document.getElementById('carveW').value = S.w;
   document.getElementById('carveH').value = S.h;
 
-  const wrapRect = carveWrap.getBoundingClientRect();
-
-  // Calculate zoom to fit image nicely (80% of available space)
-  const fitZoom = Math.min(
-    (wrapRect.width * 0.9) / img.naturalWidth,
-    (wrapRect.height * 0.9) / img.naturalHeight,
-    6 // max initial zoom for tiny sheets
-  );
-
-  const dispW = img.naturalWidth * fitZoom;
-  const dispH = img.naturalHeight * fitZoom;
-
   carve = {
     img,
-    zoom: fitZoom,
-    panX: (wrapRect.width - dispW) / 2,
-    panY: (wrapRect.height - dispH) / 2,
-    // selection in IMAGE pixel coordinates
-    selX: 0,
-    selY: 0,
-    // touch state
-    dragging: false,
-    pinching: false,
-    longPressTimer: null,
-    startX: 0, startY: 0,
-    startPanX: 0, startPanY: 0,
-    lastDist: 0,
-    pinchStartZoom: 1,
-    pinchCX: 0, pinchCY: 0,
+    zoom: 1, panX: 0, panY: 0,
+    selX: 0, selY: 0,
+    dragging: false, pinching: false, panning: false,
+    longPressTimer: null, moved: false,
+    startX: 0, startY: 0, startPanX: 0, startPanY: 0,
+    lastDist: 0, lastCenterX: 0, lastCenterY: 0,
     snap: true,
-    moved: false,
-    carved: [], // thumbnail data urls
   };
 
-  // Draw the sprite sheet onto canvas
   carveCvs.width = img.naturalWidth;
   carveCvs.height = img.naturalHeight;
   renderCarveCanvas();
 
   carveOverlay.classList.add('show');
-  // Defer layout measurement
   requestAnimationFrame(() => {
     if (!carve) return;
-    const wrapRect = carveWrap.getBoundingClientRect();
-    const fitZoom = Math.min(
-      (wrapRect.width * 0.9) / img.naturalWidth,
-      (wrapRect.height * 0.9) / img.naturalHeight,
-      6
-    );
-    const dispW = img.naturalWidth * fitZoom;
-    const dispH = img.naturalHeight * fitZoom;
-    carve.zoom = fitZoom;
-    carve.panX = (wrapRect.width - dispW) / 2;
-    carve.panY = (wrapRect.height - dispH) / 2;
+    const wr = carveWrap.getBoundingClientRect();
+    const z = Math.min((wr.width * 0.9) / img.naturalWidth, (wr.height * 0.9) / img.naturalHeight, 6);
+    carve.zoom = z;
+    carve.panX = (wr.width - img.naturalWidth * z) / 2;
+    carve.panY = (wr.height - img.naturalHeight * z) / 2;
     updateCarveTransform();
     updateCarveSelection();
   });
@@ -1442,21 +1410,24 @@ function updateCarveTransform() {
   carveCvs.style.transform = `translate(${carve.panX}px, ${carve.panY}px) scale(${carve.zoom})`;
 }
 
-function updateCarveSelection() {
-  if (!carve) return;
+// Helper: compute the final carve coordinates (used by both display and extraction)
+function getCarveCoords() {
   const cw = getCarveW(), ch = getCarveH();
-
-  // Compute display position (snap if enabled, clamp to image)
   let sx = carve.selX, sy = carve.selY;
   if (carve.snap) {
     sx = Math.round(sx / cw) * cw;
     sy = Math.round(sy / ch) * ch;
   }
-  sx = Math.max(0, Math.min(carve.img.naturalWidth - cw, sx));
-  sy = Math.max(0, Math.min(carve.img.naturalHeight - ch, sy));
-  // NOTE: do NOT write sx/sy back to carve.selX/selY — keep raw coords intact
+  sx = Math.max(0, Math.min(carve.img.naturalWidth - cw, Math.round(sx)));
+  sy = Math.max(0, Math.min(carve.img.naturalHeight - ch, Math.round(sy)));
+  return { sx, sy, cw, ch };
+}
 
-  // Position the selection rectangle in screen space
+function updateCarveSelection() {
+  if (!carve) return;
+  const { sx, sy, cw, ch } = getCarveCoords();
+
+  // Position selection in wrap-local screen space
   const screenX = carve.panX + sx * carve.zoom;
   const screenY = carve.panY + sy * carve.zoom;
   const screenW = cw * carve.zoom;
@@ -1467,36 +1438,34 @@ function updateCarveSelection() {
   carveSel.style.width = screenW + 'px';
   carveSel.style.height = screenH + 'px';
 
-  // Crosshairs
   carveCH.style.top = (screenY + screenH / 2) + 'px';
   carveCH.style.display = 'block';
   carveCV.style.left = (screenX + screenW / 2) + 'px';
   carveCV.style.display = 'block';
 
-  // Coordinate display
   carveCoord.style.display = 'block';
-  carveCoord.textContent = `${Math.round(sx)}, ${Math.round(sy)}  ·  ${cw}×${ch}`;
+  carveCoord.textContent = `${sx}, ${sy}  ·  ${cw}×${ch}`;
 }
 
 function screenToImageCoords(clientX, clientY) {
   const wrapRect = carveWrap.getBoundingClientRect();
   const localX = clientX - wrapRect.left;
   const localY = clientY - wrapRect.top;
-  const imgX = (localX - carve.panX) / carve.zoom;
-  const imgY = (localY - carve.panY) / carve.zoom;
-  return { imgX, imgY };
+  return {
+    imgX: (localX - carve.panX) / carve.zoom,
+    imgY: (localY - carve.panY) / carve.zoom
+  };
 }
 
 function carveSprite() {
   if (!carve) return;
-  const cw = getCarveW(), ch = getCarveH();
+  const { sx, sy, cw, ch } = getCarveCoords(); // exact same coords as the visual
 
   // Ensure sprite size matches carve dimensions
   if (S.w !== cw || S.h !== ch) {
     S.w = cw; S.h = ch;
     document.getElementById('inW').value = cw;
     document.getElementById('inH').value = ch;
-    // Resize all existing tabs
     S.tabs.forEach(tab => {
       const np = mkPx(cw, ch);
       const oh = tab.px.length, ow = oh ? tab.px[0].length : 0;
@@ -1507,18 +1476,7 @@ function carveSprite() {
     });
   }
 
-  // Compute final coordinates exactly like updateCarveSelection does
-  let sx = carve.selX, sy = carve.selY;
-  if (carve.snap) {
-    sx = Math.round(sx / cw) * cw;
-    sy = Math.round(sy / ch) * ch;
-  }
-  sx = Math.max(0, Math.min(carve.img.naturalWidth - cw, sx));
-  sy = Math.max(0, Math.min(carve.img.naturalHeight - ch, sy));
-  sx = Math.round(sx);
-  sy = Math.round(sy);
-
-  // Get pixel data from the source image at native resolution
+  // Extract pixels from source image
   const tmpCvs = document.createElement('canvas');
   tmpCvs.width = carve.img.naturalWidth;
   tmpCvs.height = carve.img.naturalHeight;
@@ -1526,54 +1484,46 @@ function carveSprite() {
   tmpCx.drawImage(carve.img, 0, 0);
   const imgData = tmpCx.getImageData(sx, sy, cw, ch).data;
 
-  // Build pixel array
   const newPx = mkPx(cw, ch);
   for (let y = 0; y < ch; y++) {
     for (let x = 0; x < cw; x++) {
       const idx = (y * cw + x) * 4;
-      const palIdx = closestPalIdx(imgData[idx], imgData[idx+1], imgData[idx+2], imgData[idx+3]);
-      newPx[y][x] = palIdx;
+      newPx[y][x] = closestPalIdx(imgData[idx], imgData[idx+1], imgData[idx+2], imgData[idx+3]);
     }
   }
 
-  // Check if the first tab is completely empty (all zeros), if so replace it
   const firstTabEmpty = S.tabs.length === 1 && S.tabs[0].px.every(row => row.every(v => v === 0));
   if (firstTabEmpty) {
-    S.tabs[0] = mkTab(newPx);
-    S.at = 0;
+    S.tabs[0] = mkTab(newPx); S.at = 0;
   } else {
-    S.tabs.push(mkTab(newPx));
-    S.at = S.tabs.length - 1;
+    S.tabs.push(mkTab(newPx)); S.at = S.tabs.length - 1;
   }
 
-  // Pulse animation on selection
   carveSel.classList.remove('pulse');
-  void carveSel.offsetWidth; // force reflow
+  void carveSel.offsetWidth;
   carveSel.classList.add('pulse');
 
-  // Add thumbnail to strip
+  // Thumbnail
   const thumbCvs = document.createElement('canvas');
   thumbCvs.width = cw; thumbCvs.height = ch;
-  const thumbCx = thumbCvs.getContext('2d');
-  thumbCx.drawImage(carve.img, sx, sy, cw, ch, 0, 0, cw, ch);
+  thumbCvs.getContext('2d').drawImage(carve.img, sx, sy, cw, ch, 0, 0, cw, ch);
   const thumbImg = document.createElement('img');
   thumbImg.src = thumbCvs.toDataURL();
   thumbImg.className = 'carve-thumb latest';
-  // Remove latest class from previous
   carveStrip.querySelectorAll('.latest').forEach(el => el.classList.remove('latest'));
   carveStrip.appendChild(thumbImg);
-  // Scroll to end
   carveStrip.scrollLeft = carveStrip.scrollWidth;
 
-  // Update main editor
   renderTabs(); resizeCvs(); render();
   toast('Carved! Frame ' + S.tabs.length);
 }
 
-// Manual carve button
 document.getElementById('carveTap').onclick = () => carveSprite();
 
 // ── CARVE TOUCH HANDLING ──
+// 1-finger: drag to position selection, long press to carve
+// 2-finger: simultaneous pan + zoom
+
 carveWrap.addEventListener('touchstart', e => {
   if (!carve) return;
   e.preventDefault();
@@ -1583,22 +1533,17 @@ carveWrap.addEventListener('touchstart', e => {
     carve.dragging = true;
     carve.pinching = false;
     carve.moved = false;
-    carve.startX = tt[0].clientX;
-    carve.startY = tt[0].clientY;
-    carve.startPanX = carve.panX;
-    carve.startPanY = carve.panY;
 
     // Start long press timer
     carve.longPressTimer = setTimeout(() => {
       if (!carve.moved) {
-        // Long press: carve at current position
         carveSprite();
         navigator.vibrate && navigator.vibrate(30);
       }
       carve.longPressTimer = null;
     }, 500);
 
-    // Move selection to where finger is
+    // Move selection to finger
     const { imgX, imgY } = screenToImageCoords(tt[0].clientX, tt[0].clientY);
     const cw = getCarveW(), ch = getCarveH();
     carve.selX = imgX - cw / 2;
@@ -1606,18 +1551,15 @@ carveWrap.addEventListener('touchstart', e => {
     updateCarveSelection();
   }
 
-  if (tt.length === 2) {
+  if (tt.length >= 2) {
     carve.dragging = false;
     carve.pinching = true;
     if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
     const dx = tt[0].clientX - tt[1].clientX;
     const dy = tt[0].clientY - tt[1].clientY;
     carve.lastDist = Math.hypot(dx, dy);
-    carve.pinchStartZoom = carve.zoom;
-    carve.pinchCX = (tt[0].clientX + tt[1].clientX) / 2;
-    carve.pinchCY = (tt[0].clientY + tt[1].clientY) / 2;
-    carve.startPanX = carve.panX;
-    carve.startPanY = carve.panY;
+    carve.lastCenterX = (tt[0].clientX + tt[1].clientX) / 2;
+    carve.lastCenterY = (tt[0].clientY + tt[1].clientY) / 2;
   }
 }, { passive: false });
 
@@ -1626,24 +1568,39 @@ carveWrap.addEventListener('touchmove', e => {
   e.preventDefault();
   const tt = e.touches;
 
-  if (tt.length === 2 && carve.pinching) {
+  if (tt.length >= 2 && carve.pinching) {
     const dx = tt[0].clientX - tt[1].clientX;
     const dy = tt[0].clientY - tt[1].clientY;
     const dist = Math.hypot(dx, dy);
-    const scale = dist / carve.lastDist;
-    const newZoom = Math.max(0.5, Math.min(20, carve.pinchStartZoom * scale));
+    const cx = (tt[0].clientX + tt[1].clientX) / 2;
+    const cy = (tt[0].clientY + tt[1].clientY) / 2;
 
-    // Zoom toward pinch center
+    // Pan: track center movement
+    const panDx = cx - carve.lastCenterX;
+    const panDy = cy - carve.lastCenterY;
+
+    // Zoom: track distance change, anchor at current center
+    const zoomScale = dist / carve.lastDist;
+    const newZoom = Math.max(0.5, Math.min(20, carve.zoom * zoomScale));
+
+    // Compute new pan so the image point under the pinch center stays fixed
     const wrapRect = carveWrap.getBoundingClientRect();
-    const pcx = carve.pinchCX - wrapRect.left;
-    const pcy = carve.pinchCY - wrapRect.top;
+    const anchorX = cx - wrapRect.left;
+    const anchorY = cy - wrapRect.top;
 
-    const imgX = (pcx - carve.startPanX) / carve.pinchStartZoom;
-    const imgY = (pcy - carve.startPanY) / carve.pinchStartZoom;
+    // Image point under anchor before this frame
+    const imgX = (anchorX - carve.panX) / carve.zoom;
+    const imgY = (anchorY - carve.panY) / carve.zoom;
 
+    // After zoom, that image point should still be under anchor + pan delta
     carve.zoom = newZoom;
-    carve.panX = pcx - imgX * newZoom;
-    carve.panY = pcy - imgY * newZoom;
+    carve.panX = (anchorX + panDx) - imgX * newZoom;
+    carve.panY = (anchorY + panDy) - imgY * newZoom;
+
+    // Update frame-to-frame tracking
+    carve.lastDist = dist;
+    carve.lastCenterX = cx;
+    carve.lastCenterY = cy;
 
     updateCarveTransform();
     updateCarveSelection();
@@ -1651,19 +1608,22 @@ carveWrap.addEventListener('touchmove', e => {
   }
 
   if (tt.length === 1 && carve.dragging) {
-    const dx = tt[0].clientX - carve.startX;
-    const dy = tt[0].clientY - carve.startY;
-
-    if (Math.abs(dx) > 8 || Math.abs(dy) > 8) {
-      carve.moved = true;
-      if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
-    }
-
-    // Move selection by updating image coords
     const { imgX, imgY } = screenToImageCoords(tt[0].clientX, tt[0].clientY);
     const cw = getCarveW(), ch = getCarveH();
-    carve.selX = imgX - cw / 2;
-    carve.selY = imgY - ch / 2;
+
+    // Check if moved enough to cancel long press
+    const newSelX = imgX - cw / 2;
+    const newSelY = imgY - ch / 2;
+    if (!carve.moved) {
+      const d = Math.hypot((newSelX - carve.selX) * carve.zoom, (newSelY - carve.selY) * carve.zoom);
+      if (d > 8) {
+        carve.moved = true;
+        if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
+      }
+    }
+
+    carve.selX = newSelX;
+    carve.selY = newSelY;
     updateCarveSelection();
   }
 }, { passive: false });
@@ -1676,62 +1636,79 @@ carveWrap.addEventListener('touchend', e => {
     carve.pinching = false;
   }
   if (e.touches.length === 1) {
+    // Went from 2 fingers to 1: stop pinching, DON'T start dragging selection
+    // (prevents accidental selection jump when lifting one finger)
     carve.pinching = false;
-    carve.dragging = true;
-    carve.startX = e.touches[0].clientX;
-    carve.startY = e.touches[0].clientY;
-    carve.startPanX = carve.panX;
-    carve.startPanY = carve.panY;
+    carve.dragging = false;
   }
 }, { passive: true });
 
 // ── CARVE MOUSE HANDLING ──
+// Left drag: position selection. Shift+drag or middle drag: pan. Wheel: zoom.
 carveWrap.addEventListener('mousedown', e => {
   if (!carve) return;
-  carve.dragging = true;
   carve.moved = false;
   carve.startX = e.clientX;
   carve.startY = e.clientY;
-  carve.startPanX = carve.panX;
-  carve.startPanY = carve.panY;
 
-  // Position selection
-  const { imgX, imgY } = screenToImageCoords(e.clientX, e.clientY);
-  const cw = getCarveW(), ch = getCarveH();
-  carve.selX = imgX - cw / 2;
-  carve.selY = imgY - ch / 2;
-  updateCarveSelection();
+  if (e.shiftKey || e.button === 1) {
+    // Pan mode
+    carve.panning = true;
+    carve.dragging = false;
+    carve.startPanX = carve.panX;
+    carve.startPanY = carve.panY;
+    e.preventDefault();
+  } else {
+    // Selection mode
+    carve.dragging = true;
+    carve.panning = false;
 
-  // Long press timer
-  carve.longPressTimer = setTimeout(() => {
-    if (!carve.moved) carveSprite();
-    carve.longPressTimer = null;
-  }, 500);
+    const { imgX, imgY } = screenToImageCoords(e.clientX, e.clientY);
+    const cw = getCarveW(), ch = getCarveH();
+    carve.selX = imgX - cw / 2;
+    carve.selY = imgY - ch / 2;
+    updateCarveSelection();
+
+    carve.longPressTimer = setTimeout(() => {
+      if (!carve.moved) carveSprite();
+      carve.longPressTimer = null;
+    }, 500);
+  }
 });
 
 window.addEventListener('mousemove', e => {
-  if (!carve || !carve.dragging) return;
-  const dx = e.clientX - carve.startX;
-  const dy = e.clientY - carve.startY;
-  if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
-    carve.moved = true;
-    if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
+  if (!carve) return;
+
+  if (carve.panning) {
+    carve.panX = carve.startPanX + (e.clientX - carve.startX);
+    carve.panY = carve.startPanY + (e.clientY - carve.startY);
+    updateCarveTransform();
+    updateCarveSelection();
+    return;
   }
-  // Move selection
-  const { imgX, imgY } = screenToImageCoords(e.clientX, e.clientY);
-  const cw = getCarveW(), ch = getCarveH();
-  carve.selX = imgX - cw / 2;
-  carve.selY = imgY - ch / 2;
-  updateCarveSelection();
+
+  if (carve.dragging) {
+    const dx = e.clientX - carve.startX;
+    const dy = e.clientY - carve.startY;
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+      carve.moved = true;
+      if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
+    }
+    const { imgX, imgY } = screenToImageCoords(e.clientX, e.clientY);
+    const cw = getCarveW(), ch = getCarveH();
+    carve.selX = imgX - cw / 2;
+    carve.selY = imgY - ch / 2;
+    updateCarveSelection();
+  }
 });
 
 window.addEventListener('mouseup', () => {
   if (!carve) return;
   carve.dragging = false;
+  carve.panning = false;
   if (carve.longPressTimer) { clearTimeout(carve.longPressTimer); carve.longPressTimer = null; }
 });
 
-// Mouse wheel zoom
 carveWrap.addEventListener('wheel', e => {
   if (!carve) return;
   e.preventDefault();
