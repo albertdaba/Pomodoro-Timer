@@ -17,6 +17,8 @@
     --red: #e05050;
     --green: #50d080;
     --font-size: 48px;
+    --margin-left: 8vw;
+    --margin-right: 8vw;
   }
 
   html, body {
@@ -32,7 +34,11 @@
     flex: 1; background: var(--bg); color: #e0e0e0;
     font-family: Arial, sans-serif; font-size: var(--font-size);
     line-height: 1.55; border: none; outline: none; resize: none;
-    padding: 0 8vw 5vw; overflow-y: auto; word-wrap: break-word;
+    padding-top: 0;
+    padding-left: var(--margin-left);
+    padding-right: var(--margin-right);
+    padding-bottom: 5vw;
+    overflow-y: auto; word-wrap: break-word;
   }
   #script-editor::placeholder { color: #1e1e1e; }
   #script-editor::-webkit-scrollbar { width: 4px; }
@@ -44,7 +50,9 @@
     display: flex; align-items: center;
     height: 44px; flex-shrink: 0;
     background: var(--panel); border-top: 1px solid var(--border);
+    overflow-x: auto;
   }
+  .editor-bar::-webkit-scrollbar { height: 0; }
   .bar-item {
     display: flex; align-items: center; gap: 7px;
     padding: 0 14px; height: 100%;
@@ -63,7 +71,10 @@
   .bar-val-input::-webkit-outer-spin-button,
   .bar-val-input::-webkit-inner-spin-button { -webkit-appearance: none; }
   .bar-val-unit { font-size: 9px; color: #333; letter-spacing: 0.1em; }
-  .bar-spacer { flex: 1; }
+  .bar-sep {
+    width: 1px; height: 18px; background: #2a2a2a; flex-shrink: 0; margin: 0 2px;
+  }
+  .bar-spacer { flex: 1; min-width: 12px; }
   .bar-btn {
     height: 100%; padding: 0 18px;
     background: transparent; border: none; border-left: 1px solid var(--border);
@@ -79,78 +90,6 @@
   }
   .bar-btn.primary:hover { background: #ffc933; }
 
-  /* popup toggle button */
-  .popup-toggle {
-    height: 100%; padding: 0 14px;
-    background: transparent; border: none; border-left: 1px solid var(--border);
-    color: var(--text-ui); font-family: inherit; font-size: 10px;
-    letter-spacing: 0.15em; text-transform: uppercase;
-    cursor: pointer; transition: color 0.15s, background 0.15s;
-    white-space: nowrap; flex-shrink: 0;
-    display: flex; align-items: center; gap: 7px;
-  }
-  .popup-toggle:hover { color: var(--amber); background: rgba(255,179,0,0.05); }
-  .popup-toggle.active {
-    color: var(--amber); background: rgba(255,179,0,0.07);
-    border-left-color: rgba(255,179,0,0.3);
-  }
-  .popup-toggle-pip {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--border); flex-shrink: 0;
-    transition: background 0.2s, box-shadow 0.2s;
-  }
-  .popup-toggle.active .popup-toggle-pip {
-    background: var(--amber); box-shadow: 0 0 6px var(--amber);
-  }
-
-  /* popup controller panel — shown in editor when popup is live */
-  #popup-controller {
-    display: none;
-    position: fixed; bottom: 44px; right: 0; left: 0;
-    z-index: 50;
-    background: rgba(8,8,8,0.97);
-    border-top: 1px solid rgba(255,179,0,0.25);
-    padding: 0;
-  }
-  #popup-controller.open { display: flex; }
-  .pc-bar {
-    display: flex; align-items: center; width: 100%; height: 44px;
-  }
-  .pc-label {
-    padding: 0 16px; font-size: 9px; letter-spacing: 0.35em;
-    text-transform: uppercase; color: var(--amber); border-right: 1px solid var(--border);
-    height: 100%; display: flex; align-items: center; gap: 8px; flex-shrink: 0;
-  }
-  .pc-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--amber); box-shadow: 0 0 6px var(--amber);
-    animation: blink2 1s infinite;
-  }
-  @keyframes blink2 { 0%,100%{opacity:1} 50%{opacity:0.4} }
-  .pc-progress-wrap { flex: 1; margin: 0 14px; height: 2px; background: rgba(255,255,255,0.07); }
-  .pc-progress-fill { height: 100%; background: var(--amber); width: 0%; transition: width 0.25s linear; }
-  .pc-speed {
-    padding: 0 14px; font-size: 12px; color: var(--amber);
-    border-left: 1px solid var(--border); height: 100%;
-    display: flex; align-items: center; gap: 5px; flex-shrink: 0;
-  }
-  .pc-speed-lbl { font-size: 9px; color: var(--text-ui); letter-spacing: 0.2em; }
-  .pc-speed-val { min-width: 28px; text-align: right; }
-  .pc-speed-unit { font-size: 9px; color: #333; }
-  .pc-btn {
-    height: 100%; padding: 0 14px;
-    background: transparent; border: none; border-left: 1px solid var(--border);
-    color: var(--text-bright); font-family: 'Courier New', monospace; font-size: 10px;
-    letter-spacing: 0.12em; text-transform: uppercase;
-    cursor: pointer; transition: color 0.15s, background 0.15s;
-    white-space: nowrap; flex-shrink: 0;
-  }
-  .pc-btn:hover { color: var(--amber); background: rgba(255,179,0,0.05); }
-  .pc-btn.pc-kill {
-    color: var(--red); border-left-color: rgba(224,80,80,0.2);
-  }
-  .pc-btn.pc-kill:hover { background: rgba(224,80,80,0.07); color: #ff7070; }
-
   /* ── HOTKEY MODAL ── */
   #hotkey-modal {
     display: none; position: fixed; inset: 0; z-index: 100;
@@ -158,13 +97,14 @@
   }
   #hotkey-modal.open { display: flex; }
   .hk-panel {
-    width: 100%; max-width: 620px;
+    width: 100%; max-width: 680px;
     background: #0e0e0e; border: 1px solid var(--border);
     border-bottom: none; padding: 0;
+    max-height: 82vh; display: flex; flex-direction: column;
   }
   .hk-header {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 20px; border-bottom: 1px solid var(--border);
+    padding: 12px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
   }
   .hk-title { font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--amber); }
   .hk-close {
@@ -172,13 +112,24 @@
     font-size: 16px; line-height: 1; padding: 0;
   }
   .hk-close:hover { color: var(--text-bright); }
+  .hk-section-label {
+    grid-column: 1 / -1;
+    padding: 8px 20px 4px;
+    font-size: 8px; letter-spacing: 0.35em; text-transform: uppercase;
+    color: #3a3a3a; border-bottom: 1px solid #141414;
+  }
+  .hk-body {
+    overflow-y: auto; flex: 1;
+  }
+  .hk-body::-webkit-scrollbar { width: 3px; }
+  .hk-body::-webkit-scrollbar-thumb { background: #222; }
   .hk-grid {
     display: grid; grid-template-columns: 1fr 1fr;
     gap: 0;
   }
   .hk-row {
     display: flex; align-items: center; justify-content: space-between;
-    padding: 10px 20px; border-bottom: 1px solid #181818;
+    padding: 9px 20px; border-bottom: 1px solid #141414;
     gap: 12px;
   }
   .hk-action { font-size: 11px; color: var(--text-ui); letter-spacing: 0.05em; }
@@ -187,7 +138,7 @@
     color: var(--amber); font-family: inherit; font-size: 10px;
     letter-spacing: 0.15em; padding: 4px 10px; cursor: pointer;
     min-width: 56px; text-align: center; transition: border-color 0.15s;
-    white-space: nowrap;
+    white-space: nowrap; flex-shrink: 0;
   }
   .hk-key-btn:hover { border-color: var(--amber); }
   .hk-key-btn.listening {
@@ -198,6 +149,7 @@
   .hk-footer {
     display: flex; align-items: center; justify-content: flex-end;
     padding: 10px 20px; gap: 10px; border-top: 1px solid var(--border);
+    flex-shrink: 0;
   }
 
   /* ── TELEPROMPTER VIEW ── */
@@ -222,7 +174,11 @@
   #scroll-container { flex: 1; overflow: hidden; position: relative; }
   #scroll-track {
     position: absolute; left: 0; right: 0; top: 0;
-    padding: 0 8vw 50vh; will-change: transform;
+    padding-top: 0;
+    padding-left: var(--margin-left);
+    padding-right: var(--margin-right);
+    padding-bottom: 50vh;
+    will-change: transform;
   }
   #scroll-text {
     font-family: Arial, sans-serif; font-size: var(--font-size);
@@ -255,6 +211,16 @@
   }
   .pause-overlay.visible { opacity: 1; }
   .pause-icon { font-size: 80px; color: rgba(255,179,0,0.35); }
+
+  /* margin guide lines (shown briefly on change) */
+  .margin-guide {
+    position: absolute; top: 0; bottom: 44px; width: 1px;
+    background: rgba(255,179,0,0.18); z-index: 12; pointer-events: none;
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .margin-guide.visible { opacity: 1; }
+  #guide-left  { left: var(--margin-left); }
+  #guide-right { right: var(--margin-right); }
 
   /* teleprompter bottom bar */
   .tp-bar {
@@ -298,6 +264,16 @@
       <input class="bar-val-input" type="number" id="speed-input" value="60" min="5" max="500">
       <span class="bar-val-unit">px/s</span>
     </div>
+    <!-- Margin controls -->
+    <div class="bar-item" title="Left and right margins (vw units)">
+      <span class="bar-label">Margin</span>
+      <span class="bar-label" style="color:#444;font-size:8px;">L</span>
+      <input class="bar-val-input" type="number" id="margin-left-input" value="8" min="0" max="45" style="width:40px;">
+      <div class="bar-sep"></div>
+      <span class="bar-label" style="color:#444;font-size:8px;">R</span>
+      <input class="bar-val-input" type="number" id="margin-right-input" value="8" min="0" max="45" style="width:40px;">
+      <span class="bar-val-unit">vw</span>
+    </div>
     <div class="bar-item">
       <span style="font-size:10px;color:#444;" id="char-count">0 words</span>
     </div>
@@ -307,38 +283,7 @@
     <label class="bar-btn" style="display:flex;align-items:center;cursor:pointer;">
       Load JSON<input type="file" id="load-file" accept=".json" style="display:none" onchange="loadSettings(event)">
     </label>
-    <!-- POPUP TOGGLE -->
-    <button class="popup-toggle" id="popup-toggle-btn" onclick="togglePopupMode()" title="Open teleprompter in a separate popup window">
-      <span class="popup-toggle-pip" id="popup-pip"></span>
-      <span>⧉ Popup</span>
-    </button>
     <button class="bar-btn primary" onclick="startTeleprompter()">▶ START</button>
-  </div>
-</div>
-
-<!-- ══ POPUP CONTROLLER (shown in editor while popup is live) ══ -->
-<div id="popup-controller">
-  <div class="pc-bar">
-    <div class="pc-label">
-      <div class="pc-dot"></div>
-      <span>POPUP LIVE</span>
-    </div>
-    <div class="pc-progress-wrap">
-      <div class="pc-progress-fill" id="pc-progress"></div>
-    </div>
-    <div class="pc-speed">
-      <span class="pc-speed-lbl">SPEED</span>
-      <span class="pc-speed-val" id="pc-speed-val">60</span>
-      <span class="pc-speed-unit">px/s</span>
-    </div>
-    <button class="pc-btn" onclick="pcCmd('speedDownLarge')" title="Speed −25">«</button>
-    <button class="pc-btn" onclick="pcCmd('speedDown')" title="Speed −5">−</button>
-    <button class="pc-btn" id="pc-play-btn" onclick="pcCmd('togglePlay')">⏸ Pause</button>
-    <button class="pc-btn" onclick="pcCmd('speedUp')" title="Speed +5">+</button>
-    <button class="pc-btn" onclick="pcCmd('speedUpLarge')" title="Speed +25">»</button>
-    <button class="pc-btn" onclick="pcCmd('reset')">⟳ Reset</button>
-    <button class="pc-btn" onclick="pcCmd('focus')" title="Bring popup to front">⧉ Focus</button>
-    <button class="pc-btn pc-kill" onclick="pcCmd('exit')">✕ Close</button>
   </div>
 </div>
 
@@ -349,7 +294,9 @@
       <span class="hk-title">Customize Hotkeys — click a key to rebind</span>
       <button class="hk-close" onclick="closeHotkeyModal()">✕</button>
     </div>
-    <div class="hk-grid" id="hk-grid"></div>
+    <div class="hk-body">
+      <div class="hk-grid" id="hk-grid"></div>
+    </div>
     <div class="hk-footer">
       <button class="bar-btn" style="border:1px solid var(--border);height:34px;" onclick="resetHotkeys()">Reset Defaults</button>
       <button class="bar-btn primary" style="height:34px;" onclick="closeHotkeyModal()">Done</button>
@@ -357,16 +304,22 @@
   </div>
 </div>
 
-<!-- ══ TELEPROMPTER (inline mode) ══ -->
+<!-- ══ TELEPROMPTER ══ -->
 <div id="teleprompter-view">
   <div class="tp-fade-bottom"></div>
+  <div class="margin-guide" id="guide-left"></div>
+  <div class="margin-guide" id="guide-right"></div>
+
   <div id="scroll-container">
     <div id="scroll-track"><div id="scroll-text"></div></div>
   </div>
+
   <div id="countdown-overlay"><div id="countdown-num">3</div></div>
+
   <div class="pause-overlay" id="pause-overlay">
     <div class="pause-icon">⏸</div>
   </div>
+
   <div class="tp-bar">
     <div class="bar-item" style="gap:8px;border-right:1px solid #1e1e1e;">
       <div class="status-dot" id="status-dot"></div>
@@ -377,6 +330,10 @@
       <span class="bar-label">Speed</span>
       <span id="status-speed" style="color:var(--amber);font-size:12px;min-width:32px;text-align:right;">60</span>
       <span class="bar-val-unit">px/s</span>
+    </div>
+    <div class="bar-item" style="border-right:1px solid #1e1e1e;gap:6px;">
+      <span class="bar-label" style="color:#333;">M</span>
+      <span id="status-margin" style="color:#555;font-size:10px;">8·8</span>
     </div>
     <div class="bar-item" style="border-right:none;">
       <span id="status-pct" style="font-size:10px;color:#444;">0%</span>
@@ -391,27 +348,72 @@
 <script>
 // ── DEFAULT HOTKEYS ────────────────────────────────────────
 const DEFAULT_HOTKEYS = {
-  togglePlay:     'Space',
-  speedUp:        'ArrowUp',
-  speedDown:      'ArrowDown',
-  speedUpLarge:   'ArrowRight',
-  speedDownLarge: 'ArrowLeft',
-  rewind:         'KeyW',
-  reset:          'KeyR',
-  exit:           'Escape',
-  fullscreen:     'KeyF',
+  // Playback
+  togglePlay:       'Space',
+  reset:            'KeyR',
+  exit:             'Escape',
+  fullscreen:       'KeyF',
+  // Speed
+  speedUp:          'ArrowUp',
+  speedDown:        'ArrowDown',
+  speedUpLarge:     'ArrowRight',
+  speedDownLarge:   'ArrowLeft',
+  // Manual scroll
+  scrollStepDown:   'PageDown',
+  scrollStepUp:     'PageUp',
+  rewind:           'KeyW',
+  // Font size
+  fontSizeUp:       'BracketRight',
+  fontSizeDown:     'BracketLeft',
+  // Margins
+  marginLeftUp:     'KeyU',
+  marginLeftDown:   'KeyJ',
+  marginRightUp:    'KeyI',
+  marginRightDown:  'KeyK',
 };
 
+// Groups for modal rendering
+const HK_GROUPS = [
+  {
+    label: 'Playback',
+    actions: ['togglePlay', 'reset', 'exit', 'fullscreen']
+  },
+  {
+    label: 'Speed',
+    actions: ['speedUp', 'speedDown', 'speedUpLarge', 'speedDownLarge']
+  },
+  {
+    label: 'Scroll',
+    actions: ['scrollStepDown', 'scrollStepUp', 'rewind']
+  },
+  {
+    label: 'Font Size',
+    actions: ['fontSizeUp', 'fontSizeDown']
+  },
+  {
+    label: 'Margins',
+    actions: ['marginLeftUp', 'marginLeftDown', 'marginRightUp', 'marginRightDown']
+  },
+];
+
 const ACTION_LABELS = {
-  togglePlay:     'Play / Pause',
-  speedUp:        'Speed +5 px/s',
-  speedDown:      'Speed −5 px/s',
-  speedUpLarge:   'Speed +25 px/s',
-  speedDownLarge: 'Speed −25 px/s',
-  rewind:         'Rewind (hold)',
-  reset:          'Reset to Top',
-  exit:           'Exit',
-  fullscreen:     'Fullscreen',
+  togglePlay:       'Play / Pause',
+  speedUp:          'Speed +5 px/s',
+  speedDown:        'Speed −5 px/s',
+  speedUpLarge:     'Speed +25 px/s',
+  speedDownLarge:   'Speed −25 px/s',
+  scrollStepDown:   'Scroll Step Down',
+  scrollStepUp:     'Scroll Step Up',
+  rewind:           'Rewind (hold)',
+  reset:            'Reset to Top',
+  exit:             'Exit',
+  fullscreen:       'Fullscreen',
+  fontSizeUp:       'Font Size +4px',
+  fontSizeDown:     'Font Size −4px',
+  marginLeftUp:     'Left Margin +1vw',
+  marginLeftDown:   'Left Margin −1vw',
+  marginRightUp:    'Right Margin +1vw',
+  marginRightDown:  'Right Margin −1vw',
 };
 
 let hotkeys = { ...DEFAULT_HOTKEYS };
@@ -421,7 +423,7 @@ function keyLabel(code) {
     Space:'SPC', Escape:'ESC', ArrowUp:'↑', ArrowDown:'↓',
     ArrowLeft:'←', ArrowRight:'→', Enter:'↵', Tab:'TAB',
     Backspace:'BKSP', Delete:'DEL', Home:'HOME', End:'END',
-    PageUp:'PGUP', PageDown:'PGDN',
+    PageUp:'PGUP', PageDown:'PGDN', BracketLeft:'[', BracketRight:']',
   };
   if (map[code]) return map[code];
   if (code.startsWith('Key')) return code.slice(3);
@@ -432,13 +434,11 @@ function keyLabel(code) {
 
 // ── STATE ─────────────────────────────────────────────────
 let isPlaying = false, scrollPos = 0, currentSpeed = 60, fontSize = 48;
+let marginLeft = 8, marginRight = 8;
 let rafId = null, lastTime = null, trackHeight = 0, containerHeight = 0;
 let hudTimer = null, rewindHeld = false, countdownActive = false;
-
-// ── POPUP STATE ────────────────────────────────────────────
-let popupModeEnabled = false;
-let popupWin = null;
-let pcPollInterval = null;
+let guideTimer = null;
+const SCROLL_STEP = 80; // px per manual scroll keypress
 
 const editorView    = document.getElementById('editor-view');
 const teleView      = document.getElementById('teleprompter-view');
@@ -447,25 +447,73 @@ const scrollText    = document.getElementById('scroll-text');
 const scriptEditor  = document.getElementById('script-editor');
 const fontSizeInput = document.getElementById('font-size-input');
 const speedInput    = document.getElementById('speed-input');
+const marginLInput  = document.getElementById('margin-left-input');
+const marginRInput  = document.getElementById('margin-right-input');
 const pauseOverlay  = document.getElementById('pause-overlay');
 const statusDot     = document.getElementById('status-dot');
 const statusLabel   = document.getElementById('status-label');
 const statusSpeed   = document.getElementById('status-speed');
+const statusMargin  = document.getElementById('status-margin');
 const statusPct     = document.getElementById('status-pct');
 const progressBar   = document.getElementById('progress-bar');
 const hudPlayBtn    = document.getElementById('hud-play-btn');
 const countdownOverlay = document.getElementById('countdown-overlay');
 const countdownNum     = document.getElementById('countdown-num');
-const popupController  = document.getElementById('popup-controller');
-const pcProgress       = document.getElementById('pc-progress');
-const pcSpeedVal       = document.getElementById('pc-speed-val');
-const pcPlayBtn        = document.getElementById('pc-play-btn');
+const guideLeft        = document.getElementById('guide-left');
+const guideRight       = document.getElementById('guide-right');
 
-// ── POPUP TOGGLE ──────────────────────────────────────────
-function togglePopupMode() {
-  popupModeEnabled = !popupModeEnabled;
-  const btn = document.getElementById('popup-toggle-btn');
-  btn.classList.toggle('active', popupModeEnabled);
+// ── MARGIN HELPERS ────────────────────────────────────────
+function applyMargins() {
+  document.documentElement.style.setProperty('--margin-left',  marginLeft  + 'vw');
+  document.documentElement.style.setProperty('--margin-right', marginRight + 'vw');
+  marginLInput.value = marginLeft;
+  marginRInput.value = marginRight;
+  statusMargin.textContent = marginLeft + '·' + marginRight;
+  if (teleView.classList.contains('active')) {
+    // Remeasure after CSS update
+    requestAnimationFrame(() => {
+      trackHeight = scrollTrack.scrollHeight;
+      containerHeight = document.getElementById('scroll-container').clientHeight;
+    });
+  }
+}
+
+function flashGuides() {
+  guideLeft.classList.add('visible');
+  guideRight.classList.add('visible');
+  clearTimeout(guideTimer);
+  guideTimer = setTimeout(() => {
+    guideLeft.classList.remove('visible');
+    guideRight.classList.remove('visible');
+  }, 1200);
+}
+
+function adjustMarginLeft(delta) {
+  marginLeft = Math.max(0, Math.min(45, marginLeft + delta));
+  applyMargins();
+  flashGuides();
+  showHudBriefly();
+}
+
+function adjustMarginRight(delta) {
+  marginRight = Math.max(0, Math.min(45, marginRight + delta));
+  applyMargins();
+  flashGuides();
+  showHudBriefly();
+}
+
+// ── FONT SIZE HELPERS ─────────────────────────────────────
+function adjustFontSize(delta) {
+  fontSize = Math.max(12, Math.min(200, fontSize + delta));
+  document.documentElement.style.setProperty('--font-size', fontSize + 'px');
+  fontSizeInput.value = fontSize;
+  if (teleView.classList.contains('active')) {
+    requestAnimationFrame(() => {
+      trackHeight = scrollTrack.scrollHeight;
+      containerHeight = document.getElementById('scroll-container').clientHeight;
+    });
+  }
+  showHudBriefly();
 }
 
 // ── EDITOR ────────────────────────────────────────────────
@@ -473,15 +521,29 @@ scriptEditor.addEventListener('input', () => {
   const t = scriptEditor.value.trim();
   document.getElementById('char-count').textContent = (t ? t.split(/\s+/).length : 0) + ' words';
 });
+
 fontSizeInput.addEventListener('input', () => {
   fontSize = Math.max(12, Math.min(200, parseInt(fontSizeInput.value) || 48));
   document.documentElement.style.setProperty('--font-size', fontSize + 'px');
 });
 fontSizeInput.addEventListener('change', () => { fontSizeInput.value = fontSize; });
+
 speedInput.addEventListener('change', () => {
   currentSpeed = Math.max(5, Math.min(500, parseInt(speedInput.value) || 60));
   speedInput.value = currentSpeed;
 });
+
+marginLInput.addEventListener('input', () => {
+  marginLeft = Math.max(0, Math.min(45, parseInt(marginLInput.value) || 0));
+  applyMargins();
+});
+marginLInput.addEventListener('change', () => { marginLInput.value = marginLeft; });
+
+marginRInput.addEventListener('input', () => {
+  marginRight = Math.max(0, Math.min(45, parseInt(marginRInput.value) || 0));
+  applyMargins();
+});
+marginRInput.addEventListener('change', () => { marginRInput.value = marginRight; });
 
 // ── COUNTDOWN ─────────────────────────────────────────────
 function runCountdown(cb) {
@@ -490,6 +552,7 @@ function runCountdown(cb) {
   statusDot.className = 'status-dot countdown';
   statusLabel.textContent = 'STARTING';
   let n = 3;
+
   function tick() {
     countdownNum.textContent = n;
     countdownNum.classList.remove('pop');
@@ -513,16 +576,12 @@ function runCountdown(cb) {
 function startTeleprompter() {
   const text = scriptEditor.value.trim();
   if (!text) { alert('Paste some text first.'); return; }
-  fontSize = Math.max(12, Math.min(200, parseInt(fontSizeInput.value) || 48));
+  fontSize    = Math.max(12, Math.min(200, parseInt(fontSizeInput.value) || 48));
   currentSpeed = Math.max(5, Math.min(500, parseInt(speedInput.value) || 60));
-
-  if (popupModeEnabled) {
-    startPopupTeleprompter(text, fontSize, currentSpeed);
-    return;
-  }
-
-  // — inline mode (original behaviour) —
+  marginLeft  = Math.max(0, Math.min(45, parseInt(marginLInput.value) || 0));
+  marginRight = Math.max(0, Math.min(45, parseInt(marginRInput.value) || 0));
   document.documentElement.style.setProperty('--font-size', fontSize + 'px');
+  applyMargins();
   scrollText.textContent = text;
   scrollPos = 0;
   scrollTrack.style.transform = 'translateY(0px)';
@@ -536,8 +595,13 @@ function startTeleprompter() {
     updateStatusUI();
     if (rafId) cancelAnimationFrame(rafId);
     rafId = requestAnimationFrame(scrollStep);
+
     showHudBriefly();
-    runCountdown(() => { isPlaying = true; lastTime = null; updateStatusUI(); });
+    runCountdown(() => {
+      isPlaying = true;
+      lastTime = null;
+      updateStatusUI();
+    });
   }));
 }
 
@@ -553,6 +617,7 @@ function exitTeleprompter() {
 // ── SCROLL LOOP ───────────────────────────────────────────
 function scrollStep(ts) {
   const maxScroll = trackHeight - containerHeight;
+
   if (rewindHeld && !countdownActive) {
     if (lastTime !== null) {
       const dt = (ts - lastTime) / 1000;
@@ -564,13 +629,16 @@ function scrollStep(ts) {
     rafId = requestAnimationFrame(scrollStep);
     return;
   }
+
   if (!isPlaying || countdownActive) { lastTime = null; rafId = requestAnimationFrame(scrollStep); return; }
   if (lastTime === null) { lastTime = ts; rafId = requestAnimationFrame(scrollStep); return; }
+
   const dt = (ts - lastTime) / 1000; lastTime = ts;
   scrollPos += currentSpeed * dt;
-  if (scrollPos >= maxScroll) { scrollPos = maxScroll; isPlaying = false; updateStatusUI(); }
+  const maxS = Math.max(0, maxScroll);
+  if (scrollPos >= maxS) { scrollPos = maxS; isPlaying = false; updateStatusUI(); }
   scrollTrack.style.transform = `translateY(${-scrollPos}px)`;
-  updateProgress(maxScroll);
+  updateProgress(maxS);
   rafId = requestAnimationFrame(scrollStep);
 }
 
@@ -580,7 +648,17 @@ function updateProgress(maxScroll) {
   statusPct.textContent = Math.floor(pct) + '%';
 }
 
-// ── INLINE CONTROLS ───────────────────────────────────────
+function nudgeScroll(delta) {
+  // Manual step scroll (works while paused or rolling)
+  if (countdownActive) return;
+  const maxScroll = Math.max(0, trackHeight - containerHeight);
+  scrollPos = Math.max(0, Math.min(maxScroll, scrollPos + delta));
+  scrollTrack.style.transform = `translateY(${-scrollPos}px)`;
+  updateProgress(maxScroll);
+  lastTime = null; // reset frame timing to avoid jump on resume
+}
+
+// ── CONTROLS ─────────────────────────────────────────────
 function togglePlay() {
   if (countdownActive) return;
   isPlaying = !isPlaying;
@@ -607,26 +685,37 @@ function adjustSpeed(delta) {
   showHudBriefly();
 }
 
-// ── KEYBOARD (inline mode) ────────────────────────────────
+// ── KEYBOARD ─────────────────────────────────────────────
 document.addEventListener('keydown', e => {
   if (!teleView.classList.contains('active')) return;
   if (listeningFor) return;
   const code = e.code;
-  if (code === hotkeys.togglePlay)          { e.preventDefault(); togglePlay(); }
-  else if (code === hotkeys.speedUp)        { e.preventDefault(); adjustSpeed(+5); }
-  else if (code === hotkeys.speedDown)      { e.preventDefault(); adjustSpeed(-5); }
-  else if (code === hotkeys.speedUpLarge)   { e.preventDefault(); adjustSpeed(+25); }
-  else if (code === hotkeys.speedDownLarge) { e.preventDefault(); adjustSpeed(-25); }
-  else if (code === hotkeys.rewind)         { e.preventDefault(); rewindHeld = true; lastTime = null; }
-  else if (code === hotkeys.reset)          { e.preventDefault(); resetScroll(); }
-  else if (code === hotkeys.exit)           { exitTeleprompter(); }
+
+  if      (code === hotkeys.togglePlay)       { e.preventDefault(); togglePlay(); }
+  else if (code === hotkeys.speedUp)          { e.preventDefault(); adjustSpeed(+5); }
+  else if (code === hotkeys.speedDown)        { e.preventDefault(); adjustSpeed(-5); }
+  else if (code === hotkeys.speedUpLarge)     { e.preventDefault(); adjustSpeed(+25); }
+  else if (code === hotkeys.speedDownLarge)   { e.preventDefault(); adjustSpeed(-25); }
+  else if (code === hotkeys.rewind)           { e.preventDefault(); rewindHeld = true; lastTime = null; }
+  else if (code === hotkeys.reset)            { e.preventDefault(); resetScroll(); }
+  else if (code === hotkeys.exit)             { exitTeleprompter(); }
   else if (code === hotkeys.fullscreen) {
     e.preventDefault();
     if (!document.fullscreenElement) teleView.requestFullscreen().catch(()=>{});
     else document.exitFullscreen();
   }
+  else if (code === hotkeys.fontSizeUp)       { e.preventDefault(); adjustFontSize(+4); }
+  else if (code === hotkeys.fontSizeDown)     { e.preventDefault(); adjustFontSize(-4); }
+  else if (code === hotkeys.marginLeftUp)     { e.preventDefault(); adjustMarginLeft(+1); }
+  else if (code === hotkeys.marginLeftDown)   { e.preventDefault(); adjustMarginLeft(-1); }
+  else if (code === hotkeys.marginRightUp)    { e.preventDefault(); adjustMarginRight(+1); }
+  else if (code === hotkeys.marginRightDown)  { e.preventDefault(); adjustMarginRight(-1); }
+  else if (code === hotkeys.scrollStepDown)   { e.preventDefault(); nudgeScroll(+SCROLL_STEP); }
+  else if (code === hotkeys.scrollStepUp)     { e.preventDefault(); nudgeScroll(-SCROLL_STEP); }
+
   showHudBriefly();
 });
+
 document.addEventListener('keyup', e => {
   if (e.code === hotkeys.rewind) { rewindHeld = false; lastTime = null; }
 });
@@ -639,246 +728,31 @@ function showHudBriefly() {
 }
 teleView.addEventListener('mousemove', showHudBriefly);
 
-// ══════════════════════════════════════════════════════════
-// ── POPUP TELEPROMPTER ────────────────────────────────────
-// ══════════════════════════════════════════════════════════
-
-function buildPopupHTML(text, fontSize, speed) {
-  const escaped = text.replace(/</g,'&lt;').replace(/>/g,'&gt;');
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>PROMPTER — Popup</title>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--amber:#FFB300;--bg:#080808;--border:#222;--text-ui:#666;--text-bright:#bbb;--red:#e05050;--green:#50d080;--font-size:${fontSize}px}
-html,body{height:100%;background:var(--bg);color:var(--text-bright);font-family:'Courier New',monospace;overflow:hidden;user-select:none}
-body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:10;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.06) 2px,rgba(0,0,0,0.06) 4px)}
-.tp-fade{position:fixed;left:0;right:0;height:140px;z-index:6;pointer-events:none;bottom:44px;background:linear-gradient(0deg,var(--bg) 0%,transparent 100%)}
-#sc{position:fixed;inset:0 0 44px 0;overflow:hidden}
-#st{position:absolute;left:0;right:0;top:0;padding:0 8vw 50vh;will-change:transform}
-#tx{font-family:Arial,sans-serif;font-size:var(--font-size);line-height:1.55;color:var(--amber);word-wrap:break-word;white-space:pre-wrap;text-shadow:0 0 50px rgba(255,179,0,0.25);max-width:100%}
-#cdo{position:fixed;inset:0 0 44px 0;z-index:30;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none}
-#cdo.active{opacity:1}
-#cdn{font-family:Arial,sans-serif;font-size:30vmin;font-weight:700;color:rgba(255,179,0,0.18);line-height:1;transition:transform .15s ease-out;transform:scale(1)}
-#cdn.pop{transform:scale(1.08)}
-.po{position:fixed;inset:0 0 44px 0;z-index:15;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.5);opacity:0;pointer-events:none;transition:opacity .2s}
-.po.v{opacity:1}
-.pi{font-size:80px;color:rgba(255,179,0,0.35)}
-.bar{position:fixed;bottom:0;left:0;right:0;z-index:20;display:flex;align-items:center;height:44px;background:rgba(8,8,8,0.97);border-top:1px solid var(--border);opacity:0;transition:opacity .3s;pointer-events:none}
-body:hover .bar,.bar.vis{opacity:1;pointer-events:all}
-.bi{display:flex;align-items:center;gap:7px;padding:0 12px;height:100%;border-right:1px solid var(--border);flex-shrink:0}
-.bl{font-size:9px;letter-spacing:.25em;text-transform:uppercase;color:var(--text-ui);user-select:none}
-.sd{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 6px var(--green)}
-.sd.p{background:var(--red);box-shadow:0 0 6px var(--red);animation:bk 1s infinite}
-.sd.c{background:var(--amber);box-shadow:0 0 6px var(--amber);animation:bk .5s infinite}
-@keyframes bk{0%,100%{opacity:1}50%{opacity:.3}}
-.pw{flex:1;margin:0 10px;height:2px;background:rgba(255,255,255,0.07)}
-.pf{height:100%;background:var(--amber);width:0%;transition:width .25s linear}
-.bb{height:100%;padding:0 14px;background:transparent;border:none;border-left:1px solid var(--border);color:var(--text-bright);font-family:'Courier New',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;cursor:pointer;transition:color .15s,background .15s;white-space:nowrap}
-.bb:hover{color:var(--amber);background:rgba(255,179,0,0.05)}
-</style>
-</head>
-<body>
-<div class="tp-fade"></div>
-<div id="sc"><div id="st"><div id="tx">${escaped}</div></div></div>
-<div id="cdo"><div id="cdn">3</div></div>
-<div class="po" id="po"><div class="pi">⏸</div></div>
-<div class="bar" id="bar">
-  <div class="bi"><div class="sd" id="sd"></div><span class="bl" id="sl" style="color:var(--text-bright)">READY</span></div>
-  <div class="pw"><div class="pf" id="pf"></div></div>
-  <div class="bi" style="border-left:1px solid #1e1e1e;border-right:1px solid #1e1e1e">
-    <span class="bl">Speed</span>
-    <span id="spv" style="color:var(--amber);font-size:12px;min-width:32px;text-align:right">${speed}</span>
-    <span style="font-size:9px;color:#333;letter-spacing:.1em">px/s</span>
-  </div>
-  <div class="bi" style="border-right:none"><span id="pct" style="font-size:10px;color:#444">0%</span></div>
-  <div style="flex:1"></div>
-  <button class="bb" onclick="doReset()">⟳ Reset</button>
-  <button class="bb" id="pb" onclick="doToggle()">⏸ Pause</button>
-  <button class="bb" onclick="window.close()">✕ Close</button>
-</div>
-<script>
-var playing=false,pos=0,spd=${speed},th=0,ch=0,raf=null,lt=null,cdActive=false,hudT=null;
-var st=document.getElementById('st'),sd=document.getElementById('sd'),
-    sl=document.getElementById('sl'),pf=document.getElementById('pf'),
-    pct=document.getElementById('pct'),spv=document.getElementById('spv'),
-    pb=document.getElementById('pb'),po=document.getElementById('po'),
-    bar=document.getElementById('bar'),
-    cdo=document.getElementById('cdo'),cdn=document.getElementById('cdn');
-
-function showHud(){bar.classList.add('vis');clearTimeout(hudT);hudT=setTimeout(()=>bar.classList.remove('vis'),2500)}
-document.body.addEventListener('mousemove',showHud);
-
-function measure(){th=st.scrollHeight;ch=document.getElementById('sc').clientHeight}
-
-function runCountdown(cb){
-  cdActive=true;cdo.classList.add('active');sd.className='sd c';sl.textContent='STARTING';
-  var n=3;
-  function tick(){
-    cdn.textContent=n;cdn.classList.remove('pop');void cdn.offsetWidth;cdn.classList.add('pop');
-    if(n===0){setTimeout(()=>{cdo.classList.remove('active');cdActive=false;cb()},400);return}
-    n--;setTimeout(tick,1000);
-  }
-  tick();
-}
-
-function loop(ts){
-  var max=th-ch;
-  if(!playing||cdActive){lt=null;raf=requestAnimationFrame(loop);return}
-  if(lt===null){lt=ts;raf=requestAnimationFrame(loop);return}
-  var dt=(ts-lt)/1000;lt=ts;
-  pos+=spd*dt;
-  if(pos>=max){pos=max;playing=false;updateUI()}
-  st.style.transform='translateY('+(-pos)+'px)';
-  var p=max>0?Math.min(100,(pos/max)*100):0;
-  pf.style.width=p.toFixed(1)+'%';pct.textContent=Math.floor(p)+'%';
-  raf=requestAnimationFrame(loop);
-}
-
-function updateUI(){
-  po.classList.toggle('v',!playing);
-  sd.className='sd'+(playing?'':' p');
-  sl.textContent=playing?'ROLLING':'PAUSED';
-  pb.textContent=playing?'⏸ Pause':'▶ Play';
-  spv.textContent=spd;
-}
-
-function doToggle(){if(cdActive)return;playing=!playing;if(playing)lt=null;updateUI();notifyParent()}
-function doReset(){pos=0;st.style.transform='translateY(0px)';playing=true;lt=null;updateUI();notifyParent()}
-function setSpeed(s){spd=Math.max(5,Math.min(500,s));spv.textContent=spd;showHud();notifyParent()}
-function notifyParent(){
-  try{window.opener&&window.opener.postMessage({type:'prompter-status',playing:playing,speed:spd,pct:parseFloat(pf.style.width||0)},'*')}catch(e){}
-}
-
-// listen for commands from parent
-window.addEventListener('message',function(e){
-  var d=e.data;if(!d||d.target!=='prompter-popup')return;
-  if(d.cmd==='togglePlay')doToggle();
-  else if(d.cmd==='reset')doReset();
-  else if(d.cmd==='speedUp')setSpeed(spd+5);
-  else if(d.cmd==='speedDown')setSpeed(spd-5);
-  else if(d.cmd==='speedUpLarge')setSpeed(spd+25);
-  else if(d.cmd==='speedDownLarge')setSpeed(spd-25);
-  else if(d.cmd==='exit'){window.close()}
-});
-
-window.addEventListener('resize',measure);
-
-// keyboard
-document.addEventListener('keydown',function(e){
-  if(e.code==='Space'){e.preventDefault();doToggle()}
-  else if(e.code==='ArrowUp'){e.preventDefault();setSpeed(spd+5)}
-  else if(e.code==='ArrowDown'){e.preventDefault();setSpeed(spd-5)}
-  else if(e.code==='ArrowRight'){e.preventDefault();setSpeed(spd+25)}
-  else if(e.code==='ArrowLeft'){e.preventDefault();setSpeed(spd-25)}
-  else if(e.code==='KeyR'){e.preventDefault();doReset()}
-  else if(e.code==='Escape'){window.close()}
-  else if(e.code==='KeyF'){
-    if(!document.fullscreenElement)document.documentElement.requestFullscreen().catch(()=>{});
-    else document.exitFullscreen();
-  }
-  showHud();
-});
-
-// init
-requestAnimationFrame(function(){requestAnimationFrame(function(){
-  measure();
-  playing=false;updateUI();
-  raf=requestAnimationFrame(loop);
-  showHud();
-  runCountdown(function(){playing=true;lt=null;updateUI();notifyParent()});
-})});
-<\/script>
-</body>
-</html>`;
-}
-
-function startPopupTeleprompter(text, fontSize, speed) {
-  // close any existing popup first
-  if (popupWin && !popupWin.closed) {
-    popupWin.close();
-  }
-  clearInterval(pcPollInterval);
-
-  const pw = Math.min(screen.availWidth, 1200);
-  const ph = Math.min(screen.availHeight, 800);
-  const left = Math.round((screen.availWidth - pw) / 2);
-  const top  = Math.round((screen.availHeight - ph) / 2);
-
-  popupWin = window.open('', 'PrompterPopup',
-    `width=${pw},height=${ph},left=${left},top=${top},resizable=yes,scrollbars=no,toolbar=no,menubar=no,location=no,status=no`
-  );
-
-  if (!popupWin) {
-    alert('Popup was blocked. Please allow popups for this page and try again.');
-    return;
-  }
-
-  popupWin.document.open();
-  popupWin.document.write(buildPopupHTML(text, fontSize, speed));
-  popupWin.document.close();
-
-  // show controller panel
-  popupController.classList.add('open');
-  pcSpeedVal.textContent = speed;
-  pcProgress.style.width = '0%';
-  pcPlayBtn.textContent = '⏸ Pause';
-
-  // poll for popup closure
-  pcPollInterval = setInterval(() => {
-    if (!popupWin || popupWin.closed) {
-      closePopupController();
-    }
-  }, 500);
-}
-
-// receive status updates back from popup
-window.addEventListener('message', e => {
-  if (!e.data || e.data.type !== 'prompter-status') return;
-  const { playing, speed, pct } = e.data;
-  pcSpeedVal.textContent = speed;
-  pcProgress.style.width = pct.toFixed(1) + '%';
-  pcPlayBtn.textContent = playing ? '⏸ Pause' : '▶ Play';
-});
-
-function pcCmd(cmd) {
-  if (!popupWin || popupWin.closed) { closePopupController(); return; }
-  if (cmd === 'exit') {
-    popupWin.close();
-    closePopupController();
-    return;
-  }
-  if (cmd === 'focus') {
-    popupWin.focus();
-    return;
-  }
-  popupWin.postMessage({ target: 'prompter-popup', cmd }, '*');
-}
-
-function closePopupController() {
-  clearInterval(pcPollInterval);
-  popupController.classList.remove('open');
-  if (popupWin && !popupWin.closed) popupWin.close();
-  popupWin = null;
-}
-
 // ── HOTKEY MODAL ─────────────────────────────────────────
 let listeningFor = null;
 
 function buildHkGrid() {
   const grid = document.getElementById('hk-grid');
   grid.innerHTML = '';
-  Object.keys(hotkeys).forEach(action => {
-    const row = document.createElement('div');
-    row.className = 'hk-row';
-    row.innerHTML = `
-      <span class="hk-action">${ACTION_LABELS[action]}</span>
-      <button class="hk-key-btn" data-action="${action}">${keyLabel(hotkeys[action])}</button>
-    `;
-    grid.appendChild(row);
+
+  HK_GROUPS.forEach(group => {
+    // Section header spanning both columns
+    const hdr = document.createElement('div');
+    hdr.className = 'hk-section-label';
+    hdr.textContent = group.label;
+    grid.appendChild(hdr);
+
+    group.actions.forEach(action => {
+      const row = document.createElement('div');
+      row.className = 'hk-row';
+      row.innerHTML = `
+        <span class="hk-action">${ACTION_LABELS[action]}</span>
+        <button class="hk-key-btn" data-action="${action}">${keyLabel(hotkeys[action])}</button>
+      `;
+      grid.appendChild(row);
+    });
   });
+
   grid.querySelectorAll('.hk-key-btn').forEach(btn => {
     btn.addEventListener('click', () => startListening(btn.dataset.action));
   });
@@ -930,6 +804,8 @@ function saveSettings() {
   const data = {
     fontSize: parseInt(fontSizeInput.value) || 48,
     speed: parseInt(speedInput.value) || 60,
+    marginLeft: parseInt(marginLInput.value) || 8,
+    marginRight: parseInt(marginRInput.value) || 8,
     hotkeys: { ...hotkeys },
     script: scriptEditor.value
   };
@@ -946,8 +822,11 @@ function loadSettings(e) {
   r.onload = ev => {
     try {
       const d = JSON.parse(ev.target.result);
-      if (d.fontSize) { fontSize = d.fontSize; fontSizeInput.value = fontSize; document.documentElement.style.setProperty('--font-size', fontSize + 'px'); }
-      if (d.speed)    { currentSpeed = d.speed; speedInput.value = currentSpeed; }
+      if (d.fontSize)   { fontSize = d.fontSize; fontSizeInput.value = fontSize; document.documentElement.style.setProperty('--font-size', fontSize + 'px'); }
+      if (d.speed)      { currentSpeed = d.speed; speedInput.value = currentSpeed; }
+      if (d.marginLeft  != null) { marginLeft  = d.marginLeft;  }
+      if (d.marginRight != null) { marginRight = d.marginRight; }
+      applyMargins();
       if (d.hotkeys && typeof d.hotkeys === 'object') { hotkeys = { ...DEFAULT_HOTKEYS, ...d.hotkeys }; }
       if (typeof d.script === 'string') { scriptEditor.value = d.script; scriptEditor.dispatchEvent(new Event('input')); }
     } catch { alert('Invalid JSON file.'); }
