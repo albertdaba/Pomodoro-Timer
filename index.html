@@ -4,842 +4,587 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>PROMPTER</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --amber:#f0c040;--amber-dim:#7a5c10;--blue:#3a8cff;--blue-dim:#163466;
+  --bg:#050709;--ui-bg:#0b1017;--ui-border:#18232f;
+  --ui-txt:#5d7d96;--ui-bright:#a8c4d8;--panel-w:300px;
+}
+html,body{width:100%;height:100%;overflow:hidden;background:var(--bg);font-family:'IBM Plex Mono',monospace;color:var(--ui-bright);}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background:radial-gradient(ellipse 90% 90% at 50% 50%,transparent 45%,rgba(0,0,0,.45) 100%);}
 
-  :root {
-    --amber: #FFB300;
-    --bg: #080808;
-    --panel: #0f0f0f;
-    --border: #222;
-    --text-ui: #666;
-    --text-bright: #bbb;
-    --red: #e05050;
-    --green: #50d080;
-    --font-size: 48px;
-    --margin-left: 8vw;
-    --margin-right: 8vw;
-  }
+/* PROMPTER BOX */
+#prompter{position:absolute;z-index:10;}
+#box-bg{position:absolute;inset:0;border-radius:4px;pointer-events:none;border:1px solid rgba(240,192,64,.13);}
+#box-bg::after{content:'';position:absolute;inset:0;border-radius:4px;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 4px);pointer-events:none;}
 
-  html, body {
-    height: 100%; background: var(--bg);
-    color: var(--text-bright); font-family: 'Courier New', monospace;
-    overflow: hidden;
-  }
+/* clip: text viewport — flush to top of box, no top gap */
+#clip{position:absolute;top:0;left:0;right:0;bottom:34px;overflow:hidden;transition:opacity .12s ease;pointer-events:none;}
+#clip::after{content:'';position:absolute;bottom:0;left:0;right:0;height:24px;pointer-events:none;z-index:2;
+  background:linear-gradient(to top,rgba(5,7,9,.8) 0%,transparent 100%);}
+#clip.fading{opacity:0;}
+#scroller{position:absolute;top:0;left:0;right:0;font-family:'Lexend',sans-serif;white-space:pre-wrap;word-break:break-word;z-index:1;pointer-events:none;}
 
-  /* ── EDITOR VIEW ── */
-  #editor-view { display: flex; flex-direction: column; height: 100vh; }
+/* corner handles — no min size */
+.rh{position:absolute;width:22px;height:22px;z-index:22;}
+.rh::before,.rh::after{content:'';position:absolute;background:rgba(240,192,64,.38);transition:background .15s;}
+.rh:hover::before,.rh:hover::after{background:rgba(240,192,64,.92);}
+.rh::before{width:9px;height:2px;}.rh::after{width:2px;height:9px;}
+.rh.tl{top:0;left:0;cursor:nw-resize;}.rh.tl::before{top:5px;left:5px;}.rh.tl::after{top:5px;left:5px;}
+.rh.tr{top:0;right:0;cursor:ne-resize;}.rh.tr::before{top:5px;right:5px;}.rh.tr::after{top:5px;right:5px;}
+.rh.bl{bottom:0;left:0;cursor:sw-resize;}.rh.bl::before{bottom:5px;left:5px;}.rh.bl::after{bottom:5px;left:5px;}
+.rh.br{bottom:0;right:0;cursor:se-resize;}.rh.br::before{bottom:5px;right:5px;}.rh.br::after{bottom:5px;right:5px;}
 
-  #script-editor {
-    flex: 1; background: var(--bg); color: #e0e0e0;
-    font-family: Arial, sans-serif; font-size: var(--font-size);
-    line-height: 1.55; border: none; outline: none; resize: none;
-    padding-top: 0;
-    padding-left: var(--margin-left);
-    padding-right: var(--margin-right);
-    padding-bottom: 5vw;
-    overflow-y: auto; word-wrap: break-word;
-  }
-  #script-editor::placeholder { color: #1e1e1e; }
-  #script-editor::-webkit-scrollbar { width: 4px; }
-  #script-editor::-webkit-scrollbar-track { background: transparent; }
-  #script-editor::-webkit-scrollbar-thumb { background: #222; }
+/* center move handle */
+#mover{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:60px;height:60px;z-index:20;cursor:move;
+  border-radius:50%;border:1.5px solid transparent;background:transparent;
+  display:flex;align-items:center;justify-content:center;transition:border-color .2s,background .2s;}
+#mover:hover{border:1.5px solid rgba(240,192,64,.35);background:rgba(240,192,64,.08);}
 
-  /* bottom bar */
-  .editor-bar {
-    display: flex; align-items: center;
-    height: 44px; flex-shrink: 0;
-    background: var(--panel); border-top: 1px solid var(--border);
-    overflow-x: auto;
-  }
-  .editor-bar::-webkit-scrollbar { height: 0; }
-  .bar-item {
-    display: flex; align-items: center; gap: 7px;
-    padding: 0 14px; height: 100%;
-    border-right: 1px solid var(--border); flex-shrink: 0;
-  }
-  .bar-label {
-    font-size: 9px; letter-spacing: 0.25em; text-transform: uppercase;
-    color: var(--text-ui); user-select: none;
-  }
-  .bar-val-input {
-    width: 48px; background: transparent; border: none;
-    color: var(--amber); font-family: inherit; font-size: 12px;
-    text-align: center; outline: none; padding: 0;
-    -moz-appearance: textfield; cursor: text;
-  }
-  .bar-val-input::-webkit-outer-spin-button,
-  .bar-val-input::-webkit-inner-spin-button { -webkit-appearance: none; }
-  .bar-val-unit { font-size: 9px; color: #333; letter-spacing: 0.1em; }
-  .bar-sep {
-    width: 1px; height: 18px; background: #2a2a2a; flex-shrink: 0; margin: 0 2px;
-  }
-  .bar-spacer { flex: 1; min-width: 12px; }
-  .bar-btn {
-    height: 100%; padding: 0 18px;
-    background: transparent; border: none; border-left: 1px solid var(--border);
-    color: var(--text-bright); font-family: inherit; font-size: 10px;
-    letter-spacing: 0.15em; text-transform: uppercase;
-    cursor: pointer; transition: color 0.15s, background 0.15s;
-    white-space: nowrap; flex-shrink: 0;
-  }
-  .bar-btn:hover { color: var(--amber); background: rgba(255,179,0,0.05); }
-  .bar-btn.primary {
-    background: var(--amber); color: #000; font-weight: 700;
-    letter-spacing: 0.25em; border-left-color: var(--amber);
-  }
-  .bar-btn.primary:hover { background: #ffc933; }
+/* toolbar: prev / next only */
+#toolbar{position:absolute;bottom:0;left:0;right:0;height:34px;display:flex;align-items:center;justify-content:center;gap:4px;z-index:20;}
+.tb{background:none;border:none;cursor:pointer;color:rgba(240,192,64,.25);width:28px;height:28px;border-radius:5px;
+  display:flex;align-items:center;justify-content:center;transition:color .15s,background .15s;}
+.tb:hover{color:var(--amber);background:rgba(240,192,64,.08);}
+#pgind{position:absolute;bottom:8px;right:11px;font-size:10px;color:rgba(240,192,64,.22);letter-spacing:.12em;pointer-events:none;z-index:21;}
+#pbar{position:absolute;bottom:0;left:0;right:0;height:2px;background:rgba(240,192,64,.04);z-index:22;overflow:hidden;}
+#pfill{height:100%;background:linear-gradient(90deg,var(--amber-dim),var(--amber));transition:width .22s ease;width:0%;}
 
-  /* ── HOTKEY MODAL ── */
-  #hotkey-modal {
-    display: none; position: fixed; inset: 0; z-index: 100;
-    background: rgba(0,0,0,0.75); align-items: flex-end; justify-content: center;
-  }
-  #hotkey-modal.open { display: flex; }
-  .hk-panel {
-    width: 100%; max-width: 680px;
-    background: #0e0e0e; border: 1px solid var(--border);
-    border-bottom: none; padding: 0;
-    max-height: 82vh; display: flex; flex-direction: column;
-  }
-  .hk-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 12px 20px; border-bottom: 1px solid var(--border); flex-shrink: 0;
-  }
-  .hk-title { font-size: 9px; letter-spacing: 0.3em; text-transform: uppercase; color: var(--amber); }
-  .hk-close {
-    background: none; border: none; color: var(--text-ui); cursor: pointer;
-    font-size: 16px; line-height: 1; padding: 0;
-  }
-  .hk-close:hover { color: var(--text-bright); }
-  .hk-section-label {
-    grid-column: 1 / -1;
-    padding: 8px 20px 4px;
-    font-size: 8px; letter-spacing: 0.35em; text-transform: uppercase;
-    color: #3a3a3a; border-bottom: 1px solid #141414;
-  }
-  .hk-body {
-    overflow-y: auto; flex: 1;
-  }
-  .hk-body::-webkit-scrollbar { width: 3px; }
-  .hk-body::-webkit-scrollbar-thumb { background: #222; }
-  .hk-grid {
-    display: grid; grid-template-columns: 1fr 1fr;
-    gap: 0;
-  }
-  .hk-row {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 9px 20px; border-bottom: 1px solid #141414;
-    gap: 12px;
-  }
-  .hk-action { font-size: 11px; color: var(--text-ui); letter-spacing: 0.05em; }
-  .hk-key-btn {
-    background: #161616; border: 1px solid #2e2e2e;
-    color: var(--amber); font-family: inherit; font-size: 10px;
-    letter-spacing: 0.15em; padding: 4px 10px; cursor: pointer;
-    min-width: 56px; text-align: center; transition: border-color 0.15s;
-    white-space: nowrap; flex-shrink: 0;
-  }
-  .hk-key-btn:hover { border-color: var(--amber); }
-  .hk-key-btn.listening {
-    border-color: var(--amber); color: #000;
-    background: var(--amber); animation: pulse 0.6s infinite alternate;
-  }
-  @keyframes pulse { from{opacity:1} to{opacity:0.6} }
-  .hk-footer {
-    display: flex; align-items: center; justify-content: flex-end;
-    padding: 10px 20px; gap: 10px; border-top: 1px solid var(--border);
-    flex-shrink: 0;
-  }
+/* settings btn */
+#sbtn{position:fixed;top:12px;right:12px;z-index:300;width:30px;height:30px;background:rgba(11,16,23,.92);
+  border:1px solid var(--ui-border);border-radius:7px;color:var(--ui-txt);cursor:pointer;
+  display:flex;align-items:center;justify-content:center;transition:all .2s;backdrop-filter:blur(8px);font-size:14px;font-family:inherit;}
+#sbtn:hover{border-color:var(--amber-dim);color:var(--amber);}
+#sbtn.open{right:calc(var(--panel-w) + 12px);}
 
-  /* ── TELEPROMPTER VIEW ── */
-  #teleprompter-view {
-    display: none; position: fixed; inset: 0;
-    background: var(--bg); flex-direction: column; overflow: hidden;
-  }
-  #teleprompter-view.active { display: flex; }
+/* settings panel */
+#panel{position:fixed;top:0;right:0;width:var(--panel-w);height:100%;background:var(--ui-bg);
+  border-left:1px solid var(--ui-border);z-index:200;transform:translateX(100%);
+  transition:transform .26s cubic-bezier(.4,0,.2,1);overflow-y:auto;overflow-x:hidden;}
+#panel.open{transform:translateX(0);}
+.ph{padding:14px 16px 10px;border-bottom:1px solid var(--ui-border);font-size:9px;letter-spacing:.25em;color:var(--amber-dim);text-transform:uppercase;}
+.ps{padding:11px 16px;border-bottom:1px solid var(--ui-border);}
+.pst{font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--blue);margin-bottom:9px;}
+.pr{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.pl{font-size:11px;color:var(--ui-txt);flex:0 0 80px;}
 
-  #teleprompter-view::before {
-    content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 10;
-    background: repeating-linear-gradient(
-      0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px
-    );
-  }
-
-  .tp-fade-bottom {
-    position: absolute; left: 0; right: 0; height: 120px; z-index: 6; pointer-events: none;
-    bottom: 44px; background: linear-gradient(0deg, var(--bg) 0%, transparent 100%);
-  }
-
-  #scroll-container { flex: 1; overflow: hidden; position: relative; }
-  #scroll-track {
-    position: absolute; left: 0; right: 0; top: 0;
-    padding-top: 0;
-    padding-left: var(--margin-left);
-    padding-right: var(--margin-right);
-    padding-bottom: 50vh;
-    will-change: transform;
-  }
-  #scroll-text {
-    font-family: Arial, sans-serif; font-size: var(--font-size);
-    line-height: 1.55; color: var(--amber);
-    word-wrap: break-word; white-space: pre-wrap;
-    text-shadow: 0 0 50px rgba(255,179,0,0.25); max-width: 100%;
-  }
-
-  /* countdown overlay */
-  #countdown-overlay {
-    position: absolute; inset: 0 0 44px 0; z-index: 30;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(0,0,0,0); pointer-events: none; opacity: 0;
-  }
-  #countdown-overlay.active { opacity: 1; }
-  #countdown-num {
-    font-family: Arial, sans-serif; font-size: 30vmin; font-weight: 700;
-    color: rgba(255,179,0,0.18); line-height: 1;
-    transition: transform 0.15s ease-out, opacity 0.15s;
-    transform: scale(1);
-  }
-  #countdown-num.pop { transform: scale(1.08); }
-
-  /* pause overlay */
-  .pause-overlay {
-    position: absolute; inset: 0 0 44px 0; z-index: 15;
-    display: flex; align-items: center; justify-content: center;
-    background: rgba(0,0,0,0.5);
-    opacity: 0; pointer-events: none; transition: opacity 0.2s;
-  }
-  .pause-overlay.visible { opacity: 1; }
-  .pause-icon { font-size: 80px; color: rgba(255,179,0,0.35); }
-
-  /* margin guide lines (shown briefly on change) */
-  .margin-guide {
-    position: absolute; top: 0; bottom: 44px; width: 1px;
-    background: rgba(255,179,0,0.18); z-index: 12; pointer-events: none;
-    opacity: 0; transition: opacity 0.3s;
-  }
-  .margin-guide.visible { opacity: 1; }
-  #guide-left  { left: var(--margin-left); }
-  #guide-right { right: var(--margin-right); }
-
-  /* teleprompter bottom bar */
-  .tp-bar {
-    position: absolute; bottom: 0; left: 0; right: 0; z-index: 20;
-    display: flex; align-items: center;
-    height: 44px; background: rgba(8,8,8,0.95);
-    border-top: 1px solid var(--border);
-    opacity: 0; transition: opacity 0.3s; pointer-events: none;
-  }
-  #teleprompter-view:hover .tp-bar,
-  #teleprompter-view.hud-visible .tp-bar { opacity: 1; pointer-events: all; }
-
-  .status-dot {
-    width: 6px; height: 6px; border-radius: 50%;
-    background: var(--green); box-shadow: 0 0 6px var(--green); flex-shrink: 0;
-  }
-  .status-dot.paused { background: var(--red); box-shadow: 0 0 6px var(--red); animation: blink 1s infinite; }
-  .status-dot.countdown { background: var(--amber); box-shadow: 0 0 6px var(--amber); animation: blink 0.5s infinite; }
-  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
-
-  .progress-wrap { flex: 1; margin: 0 12px; height: 2px; background: rgba(255,255,255,0.07); }
-  .progress-fill { height: 100%; background: var(--amber); width: 0%; transition: width 0.25s linear; }
+input[type=range]{-webkit-appearance:none;flex:1;height:2px;background:var(--ui-border);border-radius:2px;outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:10px;height:10px;background:var(--amber);border-radius:50%;cursor:pointer;}
+input[type=range]::-moz-range-thumb{width:10px;height:10px;background:var(--amber);border-radius:50%;cursor:pointer;border:none;}
+input[type=number]{background:rgba(4,6,10,.9);border:1px solid var(--ui-border);border-radius:4px;color:var(--ui-bright);
+  font-family:'IBM Plex Mono',monospace;font-size:11px;padding:3px 5px;width:54px;text-align:right;outline:none;transition:border-color .2s;}
+input[type=number]:focus{border-color:var(--blue);}
+input[type=color]{width:36px;height:24px;border:1px solid var(--ui-border);border-radius:4px;background:none;cursor:pointer;padding:0;}
+textarea{width:100%;min-height:110px;background:rgba(4,6,10,.9);border:1px solid var(--ui-border);border-radius:4px;
+  color:var(--ui-bright);font-family:'Lexend',sans-serif;font-size:11px;padding:8px 10px;resize:vertical;line-height:1.55;outline:none;transition:border-color .2s;}
+textarea:focus{border-color:var(--blue);}
+.btn{flex:1;background:rgba(4,6,10,.9);border:1px solid var(--ui-border);border-radius:5px;color:var(--ui-txt);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.12em;padding:6px 8px;cursor:pointer;transition:all .2s;text-align:center;text-transform:uppercase;}
+.btn:hover{border-color:var(--amber-dim);color:var(--amber);}
+.btn.hi{border-color:var(--blue-dim);color:var(--blue);}
+.btn.hi:hover{border-color:var(--blue);background:rgba(58,140,255,.08);}
+.hk{background:rgba(4,6,10,.9);border:1px solid var(--ui-border);border-radius:4px;color:var(--ui-bright);
+  font-family:'IBM Plex Mono',monospace;font-size:10px;padding:4px 8px;cursor:pointer;min-width:64px;text-align:center;transition:all .2s;}
+.hk:hover{border-color:var(--amber-dim);}
+.hk.rec{border-color:var(--blue);color:var(--blue);animation:blink .7s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.15;}}
+#m{position:fixed;visibility:hidden;pointer-events:none;white-space:pre-wrap;word-break:break-word;font-family:'Lexend',sans-serif;top:-9999px;left:0;}
 </style>
 </head>
 <body>
 
-<!-- ══ EDITOR ══ -->
-<div id="editor-view">
-  <textarea id="script-editor" placeholder="Paste or type your script here…"></textarea>
-  <div class="editor-bar">
-    <div class="bar-item" style="padding:0 16px;">
-      <span class="bar-label" style="color:var(--amber);letter-spacing:.35em;">▶ PROMPTER</span>
-    </div>
-    <div class="bar-item">
-      <span class="bar-label">Size</span>
-      <input class="bar-val-input" type="number" id="font-size-input" value="48" min="12" max="200">
-      <span class="bar-val-unit">px</span>
-    </div>
-    <div class="bar-item">
-      <span class="bar-label">Speed</span>
-      <input class="bar-val-input" type="number" id="speed-input" value="60" min="5" max="500">
-      <span class="bar-val-unit">px/s</span>
-    </div>
-    <!-- Margin controls -->
-    <div class="bar-item" title="Left and right margins (vw units)">
-      <span class="bar-label">Margin</span>
-      <span class="bar-label" style="color:#444;font-size:8px;">L</span>
-      <input class="bar-val-input" type="number" id="margin-left-input" value="8" min="0" max="45" style="width:40px;">
-      <div class="bar-sep"></div>
-      <span class="bar-label" style="color:#444;font-size:8px;">R</span>
-      <input class="bar-val-input" type="number" id="margin-right-input" value="8" min="0" max="45" style="width:40px;">
-      <span class="bar-val-unit">vw</span>
-    </div>
-    <div class="bar-item">
-      <span style="font-size:10px;color:#444;" id="char-count">0 words</span>
-    </div>
-    <div class="bar-spacer"></div>
-    <button class="bar-btn" onclick="openHotkeyModal()">Hotkeys</button>
-    <button class="bar-btn" onclick="saveSettings()">Save JSON</button>
-    <label class="bar-btn" style="display:flex;align-items:center;cursor:pointer;">
-      Load JSON<input type="file" id="load-file" accept=".json" style="display:none" onchange="loadSettings(event)">
-    </label>
-    <button class="bar-btn primary" onclick="startTeleprompter()">▶ START</button>
+<div id="prompter">
+  <div id="box-bg"></div>
+  <div id="clip"><div id="scroller"></div></div>
+  <div class="rh tl" data-c="tl"></div>
+  <div class="rh tr" data-c="tr"></div>
+  <div class="rh bl" data-c="bl"></div>
+  <div class="rh br" data-c="br"></div>
+  <div id="mover"></div>
+  <div id="toolbar">
+    <button class="tb" id="tb-prev" title="Prev Page">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M7.5 2.5L4 6l3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
+    <button class="tb" id="tb-next" title="Next Page">
+      <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+        <path d="M4.5 2.5L8 6l-3.5 3.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
   </div>
+  <div id="pgind">01 / 01</div>
+  <div id="pbar"><div id="pfill"></div></div>
 </div>
 
-<!-- ══ HOTKEY MODAL ══ -->
-<div id="hotkey-modal">
-  <div class="hk-panel">
-    <div class="hk-header">
-      <span class="hk-title">Customize Hotkeys — click a key to rebind</span>
-      <button class="hk-close" onclick="closeHotkeyModal()">✕</button>
-    </div>
-    <div class="hk-body">
-      <div class="hk-grid" id="hk-grid"></div>
-    </div>
-    <div class="hk-footer">
-      <button class="bar-btn" style="border:1px solid var(--border);height:34px;" onclick="resetHotkeys()">Reset Defaults</button>
-      <button class="bar-btn primary" style="height:34px;" onclick="closeHotkeyModal()">Done</button>
-    </div>
-  </div>
-</div>
+<div id="m"></div>
+<button id="sbtn">&#9881;</button>
 
-<!-- ══ TELEPROMPTER ══ -->
-<div id="teleprompter-view">
-  <div class="tp-fade-bottom"></div>
-  <div class="margin-guide" id="guide-left"></div>
-  <div class="margin-guide" id="guide-right"></div>
+<div id="panel">
+  <div class="ph">&#9843; PROMPTER CONFIG</div>
 
-  <div id="scroll-container">
-    <div id="scroll-track"><div id="scroll-text"></div></div>
+  <div class="ps">
+    <div class="pst">Script</div>
+    <textarea id="ta" placeholder="Paste your script here..."></textarea>
+    <div class="pr" style="margin-top:8px"><button class="btn hi" id="btn-apply">APPLY</button></div>
   </div>
 
-  <div id="countdown-overlay"><div id="countdown-num">3</div></div>
-
-  <div class="pause-overlay" id="pause-overlay">
-    <div class="pause-icon">⏸</div>
+  <div class="ps">
+    <div class="pst">Typography</div>
+    <div class="pr">
+      <span class="pl">Font Size</span>
+      <input type="range" id="sl-fs" min="10" max="120" step="1">
+      <input type="number" id="n-fs" min="10" max="120" step="1">
+    </div>
+    <div class="pr">
+      <span class="pl">Side Padding</span>
+      <input type="range" id="sl-pad" min="0" max="120" step="2">
+      <input type="number" id="n-pad" min="0" max="120" step="2">
+    </div>
+    <div class="pr">
+      <span class="pl">Lines / Page</span>
+      <input type="number" id="n-lpp" min="1" max="40" style="width:54px">
+      <span id="lpp-hint" style="font-size:10px;color:var(--ui-txt);flex:1;text-align:right;"></span>
+    </div>
   </div>
 
-  <div class="tp-bar">
-    <div class="bar-item" style="gap:8px;border-right:1px solid #1e1e1e;">
-      <div class="status-dot" id="status-dot"></div>
-      <span class="bar-label" id="status-label" style="color:var(--text-bright);">READY</span>
+  <div class="ps">
+    <div class="pst">Position</div>
+    <div class="pr">
+      <span class="pl">Top Gap</span>
+      <input type="range" id="sl-top" min="0" max="800" step="1">
+      <input type="number" id="n-top" min="-2000" max="2000" step="1">
     </div>
-    <div class="progress-wrap"><div class="progress-fill" id="progress-bar"></div></div>
-    <div class="bar-item" style="border-left:1px solid #1e1e1e;border-right:1px solid #1e1e1e;">
-      <span class="bar-label">Speed</span>
-      <span id="status-speed" style="color:var(--amber);font-size:12px;min-width:32px;text-align:right;">60</span>
-      <span class="bar-val-unit">px/s</span>
+    <div class="pr">
+      <span class="pl">Box Width</span>
+      <input type="range" id="sl-w" min="80" max="3840" step="10">
+      <input type="number" id="n-w" min="80" max="9999" step="10">
     </div>
-    <div class="bar-item" style="border-right:1px solid #1e1e1e;gap:6px;">
-      <span class="bar-label" style="color:#333;">M</span>
-      <span id="status-margin" style="color:#555;font-size:10px;">8·8</span>
+    <div class="pr">
+      <span class="pl">Box Height</span>
+      <input type="range" id="sl-h" min="40" max="2160" step="10">
+      <input type="number" id="n-h" min="40" max="9999" step="10">
     </div>
-    <div class="bar-item" style="border-right:none;">
-      <span id="status-pct" style="font-size:10px;color:#444;">0%</span>
+  </div>
+
+  <div class="ps">
+    <div class="pst">Appearance</div>
+    <div class="pr"><span class="pl">Text Color</span><input type="color" id="c-text" value="#f0c040"></div>
+    <div class="pr">
+      <span class="pl">BG Opacity</span>
+      <input type="range" id="sl-opa" min="0" max="1" step="0.05">
+      <input type="number" id="n-opa" min="0" max="1" step="0.05">
     </div>
-    <div class="bar-spacer"></div>
-    <button class="bar-btn" onclick="resetScroll()">⟳ Reset</button>
-    <button class="bar-btn" id="hud-play-btn" onclick="togglePlay()">⏸ Pause</button>
-    <button class="bar-btn" onclick="exitTeleprompter()">✕ Exit</button>
+  </div>
+
+  <div class="ps">
+    <div class="pst">Hotkeys &mdash; click to assign</div>
+    <div class="pr"><span class="pl">Next Page</span><button class="hk" data-a="nextPage"></button></div>
+    <div class="pr"><span class="pl">Prev Page</span><button class="hk" data-a="prevPage"></button></div>
+    <div class="pr"><span class="pl">Font +</span><button class="hk" data-a="fontUp"></button></div>
+    <div class="pr"><span class="pl">Font &minus;</span><button class="hk" data-a="fontDown"></button></div>
+  </div>
+
+  <div class="ps">
+    <div class="pst">Preset</div>
+    <div class="pr">
+      <button class="btn" id="btn-save">SAVE .JSON</button>
+      <button class="btn hi" id="btn-load">LOAD .JSON</button>
+    </div>
+    <input type="file" id="file-in" accept=".json" style="display:none">
   </div>
 </div>
 
 <script>
-// ── DEFAULT HOTKEYS ────────────────────────────────────────
-const DEFAULT_HOTKEYS = {
-  // Playback
-  togglePlay:       'Space',
-  reset:            'KeyR',
-  exit:             'Escape',
-  fullscreen:       'KeyF',
-  // Speed
-  speedUp:          'ArrowUp',
-  speedDown:        'ArrowDown',
-  speedUpLarge:     'ArrowRight',
-  speedDownLarge:   'ArrowLeft',
-  // Manual scroll
-  scrollStepDown:   'PageDown',
-  scrollStepUp:     'PageUp',
-  rewind:           'KeyW',
-  // Font size
-  fontSizeUp:       'BracketRight',
-  fontSizeDown:     'BracketLeft',
-  // Margins
-  marginLeftUp:     'KeyU',
-  marginLeftDown:   'KeyJ',
-  marginRightUp:    'KeyI',
-  marginRightDown:  'KeyK',
+const LOREM = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+
+Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.
+
+Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+
+Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+
+Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium totam rem aperiam.
+
+Nemo enim ipsam voluptatem quia voluptas sit aspernatur aut odit aut fugit sed quia consequuntur magni dolores.
+
+At vero eos et accusamus et iusto odio dignissimos ducimus qui blanditiis praesentium voluptatum deleniti atque corrupti.`;
+
+const LH = 1.65;
+
+// State — top gap = box.y (distance from screen top to first line)
+const S = {
+  text:      LOREM,
+  page:      0,
+  pages:     1,
+  _lpp:      3,
+  _pageH:    0,
+  box:       { x: 0, y: 0, w: 0, h: 0 },  // set on init
+  fontSize:  40,
+  padding:   32,
+  lpp:       3,      // 3 lines per page default
+  textColor: '#f0c040',
+  bgOpacity: 0.88,
+  hotkeys: {
+    nextPage: 'KeyC',
+    prevPage: 'KeyD',
+    fontUp:   'KeyK',
+    fontDown: 'KeyM'
+  }
 };
 
-// Groups for modal rendering
-const HK_GROUPS = [
-  {
-    label: 'Playback',
-    actions: ['togglePlay', 'reset', 'exit', 'fullscreen']
-  },
-  {
-    label: 'Speed',
-    actions: ['speedUp', 'speedDown', 'speedUpLarge', 'speedDownLarge']
-  },
-  {
-    label: 'Scroll',
-    actions: ['scrollStepDown', 'scrollStepUp', 'rewind']
-  },
-  {
-    label: 'Font Size',
-    actions: ['fontSizeUp', 'fontSizeDown']
-  },
-  {
-    label: 'Margins',
-    actions: ['marginLeftUp', 'marginLeftDown', 'marginRightUp', 'marginRightDown']
-  },
-];
+// DOM
+const prompter = document.getElementById('prompter');
+const clip     = document.getElementById('clip');
+const scroller = document.getElementById('scroller');
+const boxBg    = document.getElementById('box-bg');
+const mover    = document.getElementById('mover');
+const pgind    = document.getElementById('pgind');
+const pfill    = document.getElementById('pfill');
+const tbPrev   = document.getElementById('tb-prev');
+const tbNext   = document.getElementById('tb-next');
+const sbtn     = document.getElementById('sbtn');
+const panel    = document.getElementById('panel');
+const ta       = document.getElementById('ta');
+const slFs     = document.getElementById('sl-fs');
+const nFs      = document.getElementById('n-fs');
+const slPad    = document.getElementById('sl-pad');
+const nPad     = document.getElementById('n-pad');
+const nLpp     = document.getElementById('n-lpp');
+const lppHint  = document.getElementById('lpp-hint');
+const slTop    = document.getElementById('sl-top');
+const nTop     = document.getElementById('n-top');
+const slW      = document.getElementById('sl-w');
+const nW       = document.getElementById('n-w');
+const slH      = document.getElementById('sl-h');
+const nH       = document.getElementById('n-h');
+const cText    = document.getElementById('c-text');
+const slOpa    = document.getElementById('sl-opa');
+const nOpa     = document.getElementById('n-opa');
+const measureEl= document.getElementById('m');
+const fileIn   = document.getElementById('file-in');
 
-const ACTION_LABELS = {
-  togglePlay:       'Play / Pause',
-  speedUp:          'Speed +5 px/s',
-  speedDown:        'Speed −5 px/s',
-  speedUpLarge:     'Speed +25 px/s',
-  speedDownLarge:   'Speed −25 px/s',
-  scrollStepDown:   'Scroll Step Down',
-  scrollStepUp:     'Scroll Step Up',
-  rewind:           'Rewind (hold)',
-  reset:            'Reset to Top',
-  exit:             'Exit',
-  fullscreen:       'Fullscreen',
-  fontSizeUp:       'Font Size +4px',
-  fontSizeDown:     'Font Size −4px',
-  marginLeftUp:     'Left Margin +1vw',
-  marginLeftDown:   'Left Margin −1vw',
-  marginRightUp:    'Right Margin +1vw',
-  marginRightDown:  'Right Margin −1vw',
-};
-
-let hotkeys = { ...DEFAULT_HOTKEYS };
-
-function keyLabel(code) {
+// ── helpers ──────────────────────────────────────────────────
+function fmtKey(code) {
+  if (!code) return '—';
   const map = {
-    Space:'SPC', Escape:'ESC', ArrowUp:'↑', ArrowDown:'↓',
-    ArrowLeft:'←', ArrowRight:'→', Enter:'↵', Tab:'TAB',
-    Backspace:'BKSP', Delete:'DEL', Home:'HOME', End:'END',
-    PageUp:'PGUP', PageDown:'PGDN', BracketLeft:'[', BracketRight:']',
+    Space:'SPACE', ArrowRight:'→', ArrowLeft:'←', ArrowUp:'↑', ArrowDown:'↓',
+    Equal:'=', Minus:'−', Enter:'↵', Escape:'ESC', Backspace:'⌫',
+    Delete:'DEL', Tab:'TAB', BracketLeft:'[', BracketRight:']',
+    Semicolon:';', Quote:"'", Comma:',', Period:'.', Slash:'/'
   };
   if (map[code]) return map[code];
-  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Key'))   return code.slice(3);
   if (code.startsWith('Digit')) return code.slice(5);
-  if (code.startsWith('F') && !isNaN(code.slice(1))) return code;
   return code;
 }
+function p2(n) { return String(n + 1).padStart(2, '0'); }
 
-// ── STATE ─────────────────────────────────────────────────
-let isPlaying = false, scrollPos = 0, currentSpeed = 60, fontSize = 48;
-let marginLeft = 8, marginRight = 8;
-let rafId = null, lastTime = null, trackHeight = 0, containerHeight = 0;
-let hudTimer = null, rewindHeld = false, countdownActive = false;
-let guideTimer = null;
-const SCROLL_STEP = 80; // px per manual scroll keypress
+// ── pagination ───────────────────────────────────────────────
+function computePages() {
+  const lineH = S.fontSize * LH;
+  const lpp   = Math.max(1, S.lpp);
+  const pageH = lpp * lineH;
 
-const editorView    = document.getElementById('editor-view');
-const teleView      = document.getElementById('teleprompter-view');
-const scrollTrack   = document.getElementById('scroll-track');
-const scrollText    = document.getElementById('scroll-text');
-const scriptEditor  = document.getElementById('script-editor');
-const fontSizeInput = document.getElementById('font-size-input');
-const speedInput    = document.getElementById('speed-input');
-const marginLInput  = document.getElementById('margin-left-input');
-const marginRInput  = document.getElementById('margin-right-input');
-const pauseOverlay  = document.getElementById('pause-overlay');
-const statusDot     = document.getElementById('status-dot');
-const statusLabel   = document.getElementById('status-label');
-const statusSpeed   = document.getElementById('status-speed');
-const statusMargin  = document.getElementById('status-margin');
-const statusPct     = document.getElementById('status-pct');
-const progressBar   = document.getElementById('progress-bar');
-const hudPlayBtn    = document.getElementById('hud-play-btn');
-const countdownOverlay = document.getElementById('countdown-overlay');
-const countdownNum     = document.getElementById('countdown-num');
-const guideLeft        = document.getElementById('guide-left');
-const guideRight       = document.getElementById('guide-right');
+  // measure total text height
+  measureEl.style.fontSize   = S.fontSize + 'px';
+  measureEl.style.lineHeight = LH;
+  measureEl.style.width      = Math.max(10, S.box.w - S.padding * 2) + 'px';
+  measureEl.textContent      = S.text;
 
-// ── MARGIN HELPERS ────────────────────────────────────────
-function applyMargins() {
-  document.documentElement.style.setProperty('--margin-left',  marginLeft  + 'vw');
-  document.documentElement.style.setProperty('--margin-right', marginRight + 'vw');
-  marginLInput.value = marginLeft;
-  marginRInput.value = marginRight;
-  statusMargin.textContent = marginLeft + '·' + marginRight;
-  if (teleView.classList.contains('active')) {
-    // Remeasure after CSS update
-    requestAnimationFrame(() => {
-      trackHeight = scrollTrack.scrollHeight;
-      containerHeight = document.getElementById('scroll-container').clientHeight;
-    });
+  const totalH = measureEl.scrollHeight;
+  S._lpp   = lpp;
+  S._pageH = pageH;
+  S.pages  = Math.max(1, Math.ceil(totalH / pageH));
+  S.page   = Math.min(S.page, S.pages - 1);
+}
+
+// ── apply current page ───────────────────────────────────────
+function applyPage() {
+  scroller.style.transform = 'translateY(-' + (S.page * S._pageH) + 'px)';
+  pfill.style.width = (S.pages > 1 ? (S.page / (S.pages - 1)) * 100 : 100) + '%';
+  pgind.textContent = p2(S.page) + ' / ' + p2(S.pages - 1);
+}
+
+// ── change page with fade ────────────────────────────────────
+function changePage(n) {
+  const t = Math.max(0, Math.min(S.pages - 1, n));
+  if (t === S.page) return;
+  clip.classList.add('fading');
+  setTimeout(function() {
+    S.page = t;
+    applyPage();
+    clip.classList.remove('fading');
+  }, 110);
+}
+function nextPage() { changePage(S.page + 1); }
+function prevPage() { changePage(S.page - 1); }
+
+// ── render ───────────────────────────────────────────────────
+function renderBox() {
+  prompter.style.left   = S.box.x + 'px';
+  prompter.style.top    = S.box.y + 'px';   // box.y IS the top gap
+  prompter.style.width  = S.box.w + 'px';
+  prompter.style.height = S.box.h + 'px';
+}
+
+function renderText() {
+  scroller.style.fontSize   = S.fontSize + 'px';
+  scroller.style.lineHeight = LH;
+  scroller.style.color      = S.textColor;
+  // side padding only — top is flush (0)
+  scroller.style.padding    = '0 ' + S.padding + 'px';
+  scroller.textContent      = S.text;
+}
+
+function renderBg() {
+  boxBg.style.background = 'rgba(4,6,10,' + S.bgOpacity + ')';
+}
+
+function fullRender() {
+  renderBox();
+  renderText();
+  renderBg();
+  computePages();
+  applyPage();
+  syncUI();
+}
+
+function syncUI() {
+  ta.value      = S.text;
+  slFs.value    = nFs.value   = S.fontSize;
+  slPad.value   = nPad.value  = S.padding;
+  nLpp.value    = S.lpp;
+  lppHint.textContent = S.pages + ' page' + (S.pages !== 1 ? 's' : '');
+  slTop.value   = nTop.value  = S.box.y;
+  slW.value     = nW.value    = S.box.w;
+  slH.value     = nH.value    = S.box.h;
+  cText.value   = S.textColor;
+  slOpa.value   = nOpa.value  = S.bgOpacity;
+  document.querySelectorAll('.hk').forEach(function(b) {
+    b.textContent = fmtKey(S.hotkeys[b.dataset.a]);
+  });
+}
+
+// ── drag (move) ──────────────────────────────────────────────
+var dragging = false, ds = {};
+mover.addEventListener('mousedown', function(e) {
+  e.preventDefault();
+  dragging = true;
+  ds = { mx: e.clientX, my: e.clientY, bx: S.box.x, by: S.box.y };
+});
+
+// ── resize (corners) ─────────────────────────────────────────
+var resizing = false, rc = null, rs = {};
+document.querySelectorAll('.rh').forEach(function(el) {
+  el.addEventListener('mousedown', function(e) {
+    e.preventDefault(); e.stopPropagation();
+    resizing = true; rc = el.dataset.c;
+    rs = { mx: e.clientX, my: e.clientY, bx: S.box.x, by: S.box.y, bw: S.box.w, bh: S.box.h };
+  });
+});
+
+document.addEventListener('mousemove', function(e) {
+  if (dragging) {
+    S.box.x = ds.bx + (e.clientX - ds.mx);
+    S.box.y = ds.by + (e.clientY - ds.my);  // moving box changes top gap
+    renderBox();
+    // sync top gap controls live
+    slTop.value = nTop.value = S.box.y;
   }
-}
-
-function flashGuides() {
-  guideLeft.classList.add('visible');
-  guideRight.classList.add('visible');
-  clearTimeout(guideTimer);
-  guideTimer = setTimeout(() => {
-    guideLeft.classList.remove('visible');
-    guideRight.classList.remove('visible');
-  }, 1200);
-}
-
-function adjustMarginLeft(delta) {
-  marginLeft = Math.max(0, Math.min(45, marginLeft + delta));
-  applyMargins();
-  flashGuides();
-  showHudBriefly();
-}
-
-function adjustMarginRight(delta) {
-  marginRight = Math.max(0, Math.min(45, marginRight + delta));
-  applyMargins();
-  flashGuides();
-  showHudBriefly();
-}
-
-// ── FONT SIZE HELPERS ─────────────────────────────────────
-function adjustFontSize(delta) {
-  fontSize = Math.max(12, Math.min(200, fontSize + delta));
-  document.documentElement.style.setProperty('--font-size', fontSize + 'px');
-  fontSizeInput.value = fontSize;
-  if (teleView.classList.contains('active')) {
-    requestAnimationFrame(() => {
-      trackHeight = scrollTrack.scrollHeight;
-      containerHeight = document.getElementById('scroll-container').clientHeight;
-    });
-  }
-  showHudBriefly();
-}
-
-// ── EDITOR ────────────────────────────────────────────────
-scriptEditor.addEventListener('input', () => {
-  const t = scriptEditor.value.trim();
-  document.getElementById('char-count').textContent = (t ? t.split(/\s+/).length : 0) + ' words';
-});
-
-fontSizeInput.addEventListener('input', () => {
-  fontSize = Math.max(12, Math.min(200, parseInt(fontSizeInput.value) || 48));
-  document.documentElement.style.setProperty('--font-size', fontSize + 'px');
-});
-fontSizeInput.addEventListener('change', () => { fontSizeInput.value = fontSize; });
-
-speedInput.addEventListener('change', () => {
-  currentSpeed = Math.max(5, Math.min(500, parseInt(speedInput.value) || 60));
-  speedInput.value = currentSpeed;
-});
-
-marginLInput.addEventListener('input', () => {
-  marginLeft = Math.max(0, Math.min(45, parseInt(marginLInput.value) || 0));
-  applyMargins();
-});
-marginLInput.addEventListener('change', () => { marginLInput.value = marginLeft; });
-
-marginRInput.addEventListener('input', () => {
-  marginRight = Math.max(0, Math.min(45, parseInt(marginRInput.value) || 0));
-  applyMargins();
-});
-marginRInput.addEventListener('change', () => { marginRInput.value = marginRight; });
-
-// ── COUNTDOWN ─────────────────────────────────────────────
-function runCountdown(cb) {
-  countdownActive = true;
-  countdownOverlay.classList.add('active');
-  statusDot.className = 'status-dot countdown';
-  statusLabel.textContent = 'STARTING';
-  let n = 3;
-
-  function tick() {
-    countdownNum.textContent = n;
-    countdownNum.classList.remove('pop');
-    void countdownNum.offsetWidth;
-    countdownNum.classList.add('pop');
-    if (n === 0) {
-      setTimeout(() => {
-        countdownOverlay.classList.remove('active');
-        countdownActive = false;
-        cb();
-      }, 400);
-      return;
+  if (resizing) {
+    var dx = e.clientX - rs.mx, dy = e.clientY - rs.my;
+    if (rc === 'br') {
+      S.box.w = Math.max(4, rs.bw + dx);
+      S.box.h = Math.max(4, rs.bh + dy);
+    } else if (rc === 'bl') {
+      var nw = Math.max(4, rs.bw - dx);
+      S.box.x = rs.bx + rs.bw - nw; S.box.w = nw;
+      S.box.h = Math.max(4, rs.bh + dy);
+    } else if (rc === 'tr') {
+      S.box.w = Math.max(4, rs.bw + dx);
+      var nh = Math.max(4, rs.bh - dy);
+      S.box.y = rs.by + rs.bh - nh; S.box.h = nh;
+    } else if (rc === 'tl') {
+      var nw2 = Math.max(4, rs.bw - dx), nh2 = Math.max(4, rs.bh - dy);
+      S.box.x = rs.bx + rs.bw - nw2; S.box.y = rs.by + rs.bh - nh2;
+      S.box.w = nw2; S.box.h = nh2;
     }
-    n--;
-    setTimeout(tick, 1000);
+    renderBox();
+    computePages(); applyPage();
+    slTop.value = nTop.value = S.box.y;
+    slW.value   = nW.value   = S.box.w;
+    slH.value   = nH.value   = S.box.h;
   }
-  tick();
-}
+});
 
-// ── START / EXIT ──────────────────────────────────────────
-function startTeleprompter() {
-  const text = scriptEditor.value.trim();
-  if (!text) { alert('Paste some text first.'); return; }
-  fontSize    = Math.max(12, Math.min(200, parseInt(fontSizeInput.value) || 48));
-  currentSpeed = Math.max(5, Math.min(500, parseInt(speedInput.value) || 60));
-  marginLeft  = Math.max(0, Math.min(45, parseInt(marginLInput.value) || 0));
-  marginRight = Math.max(0, Math.min(45, parseInt(marginRInput.value) || 0));
-  document.documentElement.style.setProperty('--font-size', fontSize + 'px');
-  applyMargins();
-  scrollText.textContent = text;
-  scrollPos = 0;
-  scrollTrack.style.transform = 'translateY(0px)';
-  editorView.style.display = 'none';
-  teleView.classList.add('active');
+document.addEventListener('mouseup', function() { dragging = false; resizing = false; });
 
-  requestAnimationFrame(() => requestAnimationFrame(() => {
-    trackHeight = scrollTrack.scrollHeight;
-    containerHeight = document.getElementById('scroll-container').clientHeight;
-    isPlaying = false;
-    updateStatusUI();
-    if (rafId) cancelAnimationFrame(rafId);
-    rafId = requestAnimationFrame(scrollStep);
-
-    showHudBriefly();
-    runCountdown(() => {
-      isPlaying = true;
-      lastTime = null;
-      updateStatusUI();
-    });
-  }));
-}
-
-function exitTeleprompter() {
-  isPlaying = false; countdownActive = false;
-  countdownOverlay.classList.remove('active');
-  if (rafId) { cancelAnimationFrame(rafId); rafId = null; }
-  teleView.classList.remove('active');
-  editorView.style.display = 'flex';
-  if (document.fullscreenElement) document.exitFullscreen();
-}
-
-// ── SCROLL LOOP ───────────────────────────────────────────
-function scrollStep(ts) {
-  const maxScroll = trackHeight - containerHeight;
-
-  if (rewindHeld && !countdownActive) {
-    if (lastTime !== null) {
-      const dt = (ts - lastTime) / 1000;
-      scrollPos = Math.max(0, scrollPos - currentSpeed * 2.5 * dt);
-      scrollTrack.style.transform = `translateY(${-scrollPos}px)`;
-      updateProgress(maxScroll);
+// ── hotkeys ───────────────────────────────────────────────────
+var recording = null, recBtn = null;
+document.querySelectorAll('.hk').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    if (recBtn === btn) {
+      btn.classList.remove('rec');
+      btn.textContent = fmtKey(S.hotkeys[btn.dataset.a]);
+      recording = null; recBtn = null; return;
     }
-    lastTime = ts;
-    rafId = requestAnimationFrame(scrollStep);
-    return;
-  }
+    if (recBtn) { recBtn.classList.remove('rec'); recBtn.textContent = fmtKey(S.hotkeys[recBtn.dataset.a]); }
+    recording = btn.dataset.a; recBtn = btn;
+    btn.classList.add('rec'); btn.textContent = '...';
+  });
+});
 
-  if (!isPlaying || countdownActive) { lastTime = null; rafId = requestAnimationFrame(scrollStep); return; }
-  if (lastTime === null) { lastTime = ts; rafId = requestAnimationFrame(scrollStep); return; }
-
-  const dt = (ts - lastTime) / 1000; lastTime = ts;
-  scrollPos += currentSpeed * dt;
-  const maxS = Math.max(0, maxScroll);
-  if (scrollPos >= maxS) { scrollPos = maxS; isPlaying = false; updateStatusUI(); }
-  scrollTrack.style.transform = `translateY(${-scrollPos}px)`;
-  updateProgress(maxS);
-  rafId = requestAnimationFrame(scrollStep);
-}
-
-function updateProgress(maxScroll) {
-  const pct = maxScroll > 0 ? Math.min(100, (scrollPos / maxScroll) * 100) : 0;
-  progressBar.style.width = pct.toFixed(1) + '%';
-  statusPct.textContent = Math.floor(pct) + '%';
-}
-
-function nudgeScroll(delta) {
-  // Manual step scroll (works while paused or rolling)
-  if (countdownActive) return;
-  const maxScroll = Math.max(0, trackHeight - containerHeight);
-  scrollPos = Math.max(0, Math.min(maxScroll, scrollPos + delta));
-  scrollTrack.style.transform = `translateY(${-scrollPos}px)`;
-  updateProgress(maxScroll);
-  lastTime = null; // reset frame timing to avoid jump on resume
-}
-
-// ── CONTROLS ─────────────────────────────────────────────
-function togglePlay() {
-  if (countdownActive) return;
-  isPlaying = !isPlaying;
-  if (isPlaying) lastTime = null;
-  updateStatusUI();
-}
-function resetScroll() {
-  scrollPos = 0; scrollTrack.style.transform = 'translateY(0px)';
-  isPlaying = true; lastTime = null; updateStatusUI();
-}
-function updateStatusUI() {
-  if (countdownActive) return;
-  pauseOverlay.classList.toggle('visible', !isPlaying);
-  statusDot.className = 'status-dot' + (isPlaying ? '' : ' paused');
-  statusLabel.textContent = isPlaying ? 'ROLLING' : 'PAUSED';
-  hudPlayBtn.textContent = isPlaying ? '⏸ Pause' : '▶ Play';
-  statusSpeed.textContent = currentSpeed;
-  speedInput.value = currentSpeed;
-}
-function adjustSpeed(delta) {
-  currentSpeed = Math.max(5, Math.min(500, currentSpeed + delta));
-  statusSpeed.textContent = currentSpeed;
-  speedInput.value = currentSpeed;
-  showHudBriefly();
-}
-
-// ── KEYBOARD ─────────────────────────────────────────────
-document.addEventListener('keydown', e => {
-  if (!teleView.classList.contains('active')) return;
-  if (listeningFor) return;
-  const code = e.code;
-
-  if      (code === hotkeys.togglePlay)       { e.preventDefault(); togglePlay(); }
-  else if (code === hotkeys.speedUp)          { e.preventDefault(); adjustSpeed(+5); }
-  else if (code === hotkeys.speedDown)        { e.preventDefault(); adjustSpeed(-5); }
-  else if (code === hotkeys.speedUpLarge)     { e.preventDefault(); adjustSpeed(+25); }
-  else if (code === hotkeys.speedDownLarge)   { e.preventDefault(); adjustSpeed(-25); }
-  else if (code === hotkeys.rewind)           { e.preventDefault(); rewindHeld = true; lastTime = null; }
-  else if (code === hotkeys.reset)            { e.preventDefault(); resetScroll(); }
-  else if (code === hotkeys.exit)             { exitTeleprompter(); }
-  else if (code === hotkeys.fullscreen) {
+document.addEventListener('keydown', function(e) {
+  if (recording) {
     e.preventDefault();
-    if (!document.fullscreenElement) teleView.requestFullscreen().catch(()=>{});
-    else document.exitFullscreen();
+    S.hotkeys[recording] = e.code;
+    recBtn.textContent = fmtKey(e.code);
+    recBtn.classList.remove('rec');
+    recording = null; recBtn = null; return;
   }
-  else if (code === hotkeys.fontSizeUp)       { e.preventDefault(); adjustFontSize(+4); }
-  else if (code === hotkeys.fontSizeDown)     { e.preventDefault(); adjustFontSize(-4); }
-  else if (code === hotkeys.marginLeftUp)     { e.preventDefault(); adjustMarginLeft(+1); }
-  else if (code === hotkeys.marginLeftDown)   { e.preventDefault(); adjustMarginLeft(-1); }
-  else if (code === hotkeys.marginRightUp)    { e.preventDefault(); adjustMarginRight(+1); }
-  else if (code === hotkeys.marginRightDown)  { e.preventDefault(); adjustMarginRight(-1); }
-  else if (code === hotkeys.scrollStepDown)   { e.preventDefault(); nudgeScroll(+SCROLL_STEP); }
-  else if (code === hotkeys.scrollStepUp)     { e.preventDefault(); nudgeScroll(-SCROLL_STEP); }
-
-  showHudBriefly();
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  var k = e.code;
+  if      (k === S.hotkeys.nextPage) { e.preventDefault(); nextPage(); }
+  else if (k === S.hotkeys.prevPage) { e.preventDefault(); prevPage(); }
+  else if (k === S.hotkeys.fontUp)   { e.preventDefault(); changeFontSize(1); }
+  else if (k === S.hotkeys.fontDown) { e.preventDefault(); changeFontSize(-1); }
 });
 
-document.addEventListener('keyup', e => {
-  if (e.code === hotkeys.rewind) { rewindHeld = false; lastTime = null; }
+function changeFontSize(d) {
+  S.fontSize = Math.max(6, Math.min(200, S.fontSize + d));
+  slFs.value = nFs.value = S.fontSize;
+  renderText(); computePages(); applyPage();
+  lppHint.textContent = S.pages + ' page' + (S.pages !== 1 ? 's' : '');
+}
+
+// ── settings panel ────────────────────────────────────────────
+sbtn.addEventListener('click', function() {
+  panel.classList.toggle('open');
+  sbtn.classList.toggle('open');
+  sbtn.textContent = panel.classList.contains('open') ? '\u2715' : '\u2699';
 });
 
-// ── HUD AUTO-HIDE ─────────────────────────────────────────
-function showHudBriefly() {
-  teleView.classList.add('hud-visible');
-  clearTimeout(hudTimer);
-  hudTimer = setTimeout(() => teleView.classList.remove('hud-visible'), 2500);
-}
-teleView.addEventListener('mousemove', showHudBriefly);
-
-// ── HOTKEY MODAL ─────────────────────────────────────────
-let listeningFor = null;
-
-function buildHkGrid() {
-  const grid = document.getElementById('hk-grid');
-  grid.innerHTML = '';
-
-  HK_GROUPS.forEach(group => {
-    // Section header spanning both columns
-    const hdr = document.createElement('div');
-    hdr.className = 'hk-section-label';
-    hdr.textContent = group.label;
-    grid.appendChild(hdr);
-
-    group.actions.forEach(action => {
-      const row = document.createElement('div');
-      row.className = 'hk-row';
-      row.innerHTML = `
-        <span class="hk-action">${ACTION_LABELS[action]}</span>
-        <button class="hk-key-btn" data-action="${action}">${keyLabel(hotkeys[action])}</button>
-      `;
-      grid.appendChild(row);
-    });
-  });
-
-  grid.querySelectorAll('.hk-key-btn').forEach(btn => {
-    btn.addEventListener('click', () => startListening(btn.dataset.action));
-  });
+function cleanText(t) {
+  // collapse ALL blank/whitespace-only lines, trim each line, rejoin
+  return t.split('\n')
+    .map(function(l) { return l.trim(); })
+    .filter(function(l) { return l.length > 0; })
+    .join('\n');
 }
 
-function startListening(action) {
-  if (listeningFor) cancelListening();
-  listeningFor = action;
-  const btn = document.querySelector(`.hk-key-btn[data-action="${action}"]`);
-  if (btn) { btn.textContent = '…'; btn.classList.add('listening'); }
-}
-
-function cancelListening() {
-  if (!listeningFor) return;
-  const btn = document.querySelector(`.hk-key-btn[data-action="${listeningFor}"]`);
-  if (btn) { btn.textContent = keyLabel(hotkeys[listeningFor]); btn.classList.remove('listening'); }
-  listeningFor = null;
-}
-
-document.addEventListener('keydown', e => {
-  if (!listeningFor) return;
-  e.preventDefault(); e.stopPropagation();
-  const code = e.code;
-  if (code === 'Escape') { cancelListening(); return; }
-  hotkeys[listeningFor] = code;
-  const btn = document.querySelector(`.hk-key-btn[data-action="${listeningFor}"]`);
-  if (btn) { btn.textContent = keyLabel(code); btn.classList.remove('listening'); }
-  listeningFor = null;
-}, true);
-
-function openHotkeyModal() {
-  buildHkGrid();
-  document.getElementById('hotkey-modal').classList.add('open');
-}
-function closeHotkeyModal() {
-  cancelListening();
-  document.getElementById('hotkey-modal').classList.remove('open');
-}
-function resetHotkeys() {
-  hotkeys = { ...DEFAULT_HOTKEYS };
-  buildHkGrid();
-}
-document.getElementById('hotkey-modal').addEventListener('click', e => {
-  if (e.target === document.getElementById('hotkey-modal')) closeHotkeyModal();
+document.getElementById('btn-apply').addEventListener('click', function() {
+  S.text = cleanText(ta.value);
+  ta.value = S.text;   // reflect cleaned text back into textarea
+  S.page = 0;
+  renderText(); computePages(); applyPage();
+  lppHint.textContent = S.pages + ' page' + (S.pages !== 1 ? 's' : '');
 });
 
-// ── SAVE / LOAD ───────────────────────────────────────────
-function saveSettings() {
-  const data = {
-    fontSize: parseInt(fontSizeInput.value) || 48,
-    speed: parseInt(speedInput.value) || 60,
-    marginLeft: parseInt(marginLInput.value) || 8,
-    marginRight: parseInt(marginRInput.value) || 8,
-    hotkeys: { ...hotkeys },
-    script: scriptEditor.value
+function bindSN(sl, num, get, set, cb) {
+  sl.addEventListener('input',  function() { set(parseFloat(sl.value));  num.value = get(); if (cb) cb(); });
+  num.addEventListener('change',function() { set(parseFloat(num.value) || get()); sl.value = get(); if (cb) cb(); });
+}
+
+bindSN(slFs,  nFs,  function(){ return S.fontSize; },  function(v){ S.fontSize = Math.max(6,Math.min(200,v)); },
+  function() { renderText(); computePages(); applyPage(); lppHint.textContent = S.pages + ' page' + (S.pages!==1?'s':''); });
+
+bindSN(slPad, nPad, function(){ return S.padding; },   function(v){ S.padding = Math.max(0,v); },
+  function() { renderText(); computePages(); applyPage(); });
+
+bindSN(slOpa, nOpa, function(){ return S.bgOpacity; }, function(v){ S.bgOpacity = Math.max(0,Math.min(1,v)); },
+  function() { renderBg(); });
+
+// top gap = box.y
+bindSN(slTop, nTop, function(){ return S.box.y; }, function(v){ S.box.y = v; },
+  function() { renderBox(); });
+
+// box width
+bindSN(slW, nW, function(){ return S.box.w; }, function(v){ S.box.w = Math.max(4,v); },
+  function() { renderBox(); computePages(); applyPage(); });
+
+// box height
+bindSN(slH, nH, function(){ return S.box.h; }, function(v){ S.box.h = Math.max(4,v); },
+  function() { renderBox(); });
+
+nLpp.addEventListener('change', function() {
+  S.lpp = Math.max(1, parseInt(nLpp.value) || 3);
+  nLpp.value = S.lpp;
+  computePages(); applyPage();
+  lppHint.textContent = S.pages + ' page' + (S.pages !== 1 ? 's' : '');
+});
+
+cText.addEventListener('input', function() {
+  S.textColor = cText.value;
+  scroller.style.color = S.textColor;
+});
+
+tbPrev.addEventListener('click', prevPage);
+tbNext.addEventListener('click', nextPage);
+
+// ── save / load ───────────────────────────────────────────────
+document.getElementById('btn-save').addEventListener('click', function() {
+  var cfg = {
+    text: S.text, box: Object.assign({}, S.box),
+    fontSize: S.fontSize, padding: S.padding, lpp: S.lpp,
+    textColor: S.textColor, bgOpacity: S.bgOpacity,
+    hotkeys: Object.assign({}, S.hotkeys)
   };
-  const a = Object.assign(document.createElement('a'), {
-    href: URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' })),
-    download: 'prompter-settings.json'
-  });
-  a.click(); URL.revokeObjectURL(a.href);
-}
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' }));
+  a.download = 'prompter.json'; a.click();
+});
 
-function loadSettings(e) {
-  const file = e.target.files[0]; if (!file) return;
-  const r = new FileReader();
-  r.onload = ev => {
+document.getElementById('btn-load').addEventListener('click', function() { fileIn.click(); });
+fileIn.addEventListener('change', function(e) {
+  var f = e.target.files[0]; if (!f) return;
+  var r = new FileReader();
+  r.onload = function(ev) {
     try {
-      const d = JSON.parse(ev.target.result);
-      if (d.fontSize)   { fontSize = d.fontSize; fontSizeInput.value = fontSize; document.documentElement.style.setProperty('--font-size', fontSize + 'px'); }
-      if (d.speed)      { currentSpeed = d.speed; speedInput.value = currentSpeed; }
-      if (d.marginLeft  != null) { marginLeft  = d.marginLeft;  }
-      if (d.marginRight != null) { marginRight = d.marginRight; }
-      applyMargins();
-      if (d.hotkeys && typeof d.hotkeys === 'object') { hotkeys = { ...DEFAULT_HOTKEYS, ...d.hotkeys }; }
-      if (typeof d.script === 'string') { scriptEditor.value = d.script; scriptEditor.dispatchEvent(new Event('input')); }
-    } catch { alert('Invalid JSON file.'); }
+      var c = JSON.parse(ev.target.result);
+      if (c.text      !== undefined) S.text      = cleanText(c.text);
+      if (c.box)                     S.box       = Object.assign({}, S.box, c.box);
+      if (c.fontSize)                S.fontSize  = c.fontSize;
+      if (c.padding   !== undefined) S.padding   = c.padding;
+      if (c.lpp)                     S.lpp       = c.lpp;
+      if (c.textColor)               S.textColor = c.textColor;
+      if (c.bgOpacity !== undefined) S.bgOpacity = c.bgOpacity;
+      if (c.hotkeys)                 S.hotkeys   = Object.assign({}, S.hotkeys, c.hotkeys);
+      S.page = 0;
+      fullRender();
+    } catch(err) { alert('Invalid JSON file.'); }
   };
-  r.readAsText(file); e.target.value = '';
-}
+  r.readAsText(f); fileIn.value = '';
+});
 
-// ── RESIZE ────────────────────────────────────────────────
-window.addEventListener('resize', () => {
-  if (teleView.classList.contains('active')) {
-    trackHeight = scrollTrack.scrollHeight;
-    containerHeight = document.getElementById('scroll-container').clientHeight;
-  }
+
+// ── global paste: Ctrl+V anywhere loads text directly ────────
+document.addEventListener('paste', function(e) {
+  // if user is typing in a textarea/input, let it behave normally
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  var text = (e.clipboardData || window.clipboardData).getData('text/plain');
+  if (!text || !text.trim()) return;
+  e.preventDefault();
+  S.text = cleanText(text);
+  ta.value = S.text;
+  S.page = 0;
+  renderText(); computePages(); applyPage();
+  lppHint.textContent = S.pages + ' page' + (S.pages !== 1 ? 's' : '');
+});
+
+// ── init ─────────────────────────────────────────────────────
+document.fonts.ready.then(function() {
+  var vw = window.innerWidth, vh = window.innerHeight;
+  // Default box: full viewport width, tall enough for 3 lines + toolbar
+  var lineH = S.fontSize * LH;
+  var boxH  = Math.round(lineH * S.lpp + 34 + 8);  // 3 lines + toolbar + small buffer
+  S.box = { x: 0, y: 0, w: vw, h: boxH };          // y=0: first line flush with screen top
+  fullRender();
 });
 </script>
 </body>
